@@ -5,7 +5,7 @@
 | Задача | Контекст |
 | --- | --- |
 | Реализация фичи | [PRD](docs/prd.md), [релевантные ADR](docs/adr/), [спецификация фичи](docs/specs/) |
-| Архитектурное проектирование | [PRD](docs/prd.md), [ADR](docs/adr/), `docs/architecture.md` (в работе) |
+| Архитектурное проектирование | [PRD](docs/prd.md), [ADR](docs/adr/), [Архитектурный манифест](docs/architecture.md) |
 | Планирование спринта | [PRD](docs/prd.md), [Roadmap](docs/roadmap.md), [CONTRIBUTING](CONTRIBUTING.md) |
 | Делегирование | [Roadmap](docs/roadmap.md), [CONTRIBUTING](CONTRIBUTING.md) |
 | Реализация дизайна | [Спецификация фичи](docs/specs/), `docs/design-system.md` (в работе) |
