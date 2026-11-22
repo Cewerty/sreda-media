@@ -1,0 +1,17 @@
+# Place this file at .github/CODEOWNERS.
+# Owners must have write access to the repository.
+# Ownership and approval boundaries: CONTRIBUTING.md.
+/docs/prd.md @Cewerty
+/docs/adr/ @Cewerty
+/docs/architecture.md @Cewerty
+/docs/roadmap.md @Cewerty
+/apps/site/ @NikkiShuRA
+/apps/cms-web/ @NikkiShuRA
+/apps/cms-api/ @Cewerty
+/apps/bot/ @Cewerty
+/packages/ @Cewerty @NikkiShuRA
+/docs/design-system.md @polinakhorikova-lgtm @NikkiShuRA
+/.github/workflows/ @Zisvit
+/docs/DEPLOYMENT.md @Zisvit
+/docs/runbook.md @Zisvit
+/.github/CODEOWNERS @Cewerty
