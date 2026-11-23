@@ -1,0 +1,132 @@
+name: CI
+
+# Единый обязательный статус PR — `ci`. Path-aware: проверки запускаются только
+# для затронутых компонентов, но итоговый статус завершается на любом PR,
+# включая PR только с документацией (ADR 0007, ADR 0015, issue #6).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # Сначала линтим сами workflows: сломанный или небезопасный workflow
+  # не должен запускать остальные проверки.
+  workflows-lint:
+    name: actionlint-and-zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.9.16"
+
+      - name: actionlint
+        run: |
+          set -euo pipefail
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint -color
+
+      - name: zizmor
+        env:
+          # Включает сетевые аудиты (impostor commits, известные уязвимости actions).
+          GH_TOKEN: ${{ github.token }}
+        run: uvx --from zizmor==1.33.1 zizmor .github/workflows --persona=regular
+
+  checks:
+    name: docs-and-secrets
+    needs: [workflows-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Одна команда для чистого checkout
+        run: python3 scripts/check.py
+
+  changes:
+    name: detect-components
+    needs: [workflows-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      site: ${{ steps.detect.outputs.site }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Что затронуто
+        id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = pull_request ]; then base="$PR_BASE"; else base="$PUSH_BEFORE"; fi
+          inputs=(apps/site packages pnpm-lock.yaml pnpm-workspace.yaml package.json \
+                  docs/adr/0014-cross-stack-content-contract.md)
+          site=false
+          # Пока фронтенд не добавил apps/site, job site не запускается вообще.
+          if [ -d apps/site ]; then
+            if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+              || ! git cat-file -e "$base^{commit}" 2>/dev/null \
+              || git diff --name-only "$base" HEAD -- "${inputs[@]}" | grep -q .; then
+              site=true
+            fi
+          fi
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "site=$site" >> "$GITHUB_STEP_SUMMARY"
+
+  # Подключается сам, когда появится собираемый Astro-сайт (ADR 0007).
+  site:
+    name: site-build
+    needs: [changes]
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@9bbca1e9dc2902adb87e8780fe5c98796985a62d # v6.1.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter site build
+
+  # Единственный required status check в защите main.
+  ci:
+    name: ci
+    if: always()
+    needs: [workflows-lint, checks, changes, site]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Итоговый статус
+        env:
+          WORKFLOWS_LINT: ${{ needs.workflows-lint.result }}
+          CHECKS: ${{ needs.checks.result }}
+          CHANGES: ${{ needs.changes.result }}
+          SITE: ${{ needs.site.result }}
+        run: |
+          set -euo pipefail
+          echo "workflows-lint=$WORKFLOWS_LINT checks=$CHECKS changes=$CHANGES site=$SITE" \
+            >> "$GITHUB_STEP_SUMMARY"
+          for result in "$WORKFLOWS_LINT" "$CHECKS" "$CHANGES" "$SITE"; do
+            if [ "$result" = failure ] || [ "$result" = cancelled ]; then
+              echo "Обязательная проверка не прошла: $result" >&2
+              exit 1
+            fi
+          done
+          echo "CI зелёный"
