@@ -6,11 +6,13 @@
 
 Принято владельцем проекта 22-11-2026.
 
+Актуализация: 23-11-2026. Эксплуатационные этапы согласованы с ADR 0005 и эпиком #14.
+
 ## Контекст
 
 Astro-витрина должна работать при отказе CMS/бота (NFR-AVAIL-01/02). С 0.2 появляются PostgreSQL и фоновые операции; с 0.4 БД и media storage становятся источником контента. Ошибка настроек, migration или backup не должна обнаруживаться после потери рабочей версии. После выпуска автора в 2027 году эксплуатация должна быть воспроизводима по документации (G-5).
 
-Из PyBot полезны явная конфигурация, разделение process types, PostgreSQL parity и порядок backup/migration/smoke. Не переносятся отдельный FastAPI health-server, Alembic baseline reset, Redis и Grafana. Хостинг/DNS ещё уточняются в ADR 0006; здесь определяется контракт эксплуатации, не провайдер или тариф.
+Из PyBot полезны явная конфигурация, разделение process types, PostgreSQL parity и порядок backup/migration/smoke. Не переносятся отдельный FastAPI health-server, Alembic baseline reset и Redis. Grafana + Alloy + Loki внедряются по ADR 0005, с адаптацией под действующие компоненты и ресурсный бюджет. Хостинг/DNS ещё уточняются в ADR 0006; здесь определяется контракт эксплуатации, не провайдер или тариф.
 
 Основания: NFR-SEC-02–04, NFR-OPS-01–04, NFR-COST-01, NFR-MAINT-01/02; исходные ADR 0005–0009.
 
@@ -67,7 +69,7 @@ Web/polling restart сам не запускает migration или seed. Пре
 
 - `/healthz`: быстрый ответ живого HTTP-процесса без вызова БД/внешних API.
 - `/readyz`: ограниченная по времени проверка БД и используемого media storage, 200 при готовности, 503 при отказе. Проверка storage использует безопасную операцию в выделенной области; статус не раскрывает пути, DSN и raw exception.
-- Telegram/VK/GitHub/GlitchTip не входят в синхронный readiness CMS: их отказ виден как деградация delivery, не как причина restart storm API.
+- Telegram/VK/GitHub/GlitchTip/Grafana/Alloy/Loki и uptime monitor не входят в синхронный readiness CMS. Отказ внешней доставки или телеметрии фиксируется самостоятельно и не инициирует restart storm API.
 - Worker/scheduler проверяются по process state и heartbeat после успешного цикла, а не ответом Django health. Heartbeat должен различать эпохи запуска, чтобы старый процесс не выдавался за новый.
 - Статический сайт проверяется внешним uptime check; наличие HTTP 200 дополняется проверкой release/snapshot revision. Это не доказывает исправность фоновой доставки.
 
@@ -75,7 +77,7 @@ Post-deploy smoke проверяет process types, отсутствие restart
 
 #### 5. Backup, export и restore
 
-С появлением stateful CMS выполнять ежедневный PostgreSQL backup; с upload media — backup файлов вместе с БД, до 0.4 проверить восстановление. Ночной published export по ADR 0014 — переносимый fallback, **не замена** backup черновиков, пользователей, версий и outbox.
+С 0.2 при появлении stateful CMS выполнять ежедневный PostgreSQL backup с защищённой offsite-копией, обнаружением ошибок и проверкой восстановления БД на тестовых данных до выпуска. С upload media — backup файлов вместе с БД; до выпуска 0.4 проверить согласованное восстановление БД и медиа. Ночной published export по ADR 0014 — переносимый fallback, **не замена** backup черновиков, пользователей, версий и outbox.
 
 Для согласованного backup DB/media использовать maintenance pause записывающих API/admin/worker/scheduler и финализацию immutable media до снимка. Другой online-подход допустим только после проверки согласованности ссылок и полного восстановления. Успешный dump без нужных файлов не считается полным backup. Наименее привилегированный backup process не получает токены соцсетей.
 
@@ -97,7 +99,7 @@ Restore runbook:
 
 JSON stdout имеет стабильные `event`, `component`, `operation`, `outcome`, correlation ID и при необходимости duration/attempt. Фиксируются lifecycle, delivery, schedule tick, build/deploy, backup/export/restore success/failure. Тексты статей/предложки, Telegram ID, cookie, приглашения и токены не включаются в логи/SDK/алерты. Business audit хранится с ограниченным доступом отдельно.
 
-GlitchTip и Telegram-alerts уточнены в обновлённом [ADR 0005](0005-observability-glitchtip.md): PostgreSQL-only all-in-one режим с явно отключённым Redis/Valkey, безопасный event contract и resource/retention gates. Проверяются очистка событий, доступ и отсутствие рекурсивных алертов. Реальные память/диск измеряются до deploy. Если выбранная версия требует Redis или бюджет превышен, применяется описанная процедура выбора/fallback с явным решением владельца, не скрытая смена сервиса или обход PRD.
+Uptime Kuma (целевой инструмент внешнего uptime), Grafana + Alloy + Loki (централизованные логи и технические алёрты), GlitchTip (ошибки приложений) и Telegram-уведомления уточнены в [ADR 0005](0005-observability-glitchtip.md): PostgreSQL-only all-in-one режим с явно отключённым Redis/Valkey, безопасный event contract и resource/retention gates. Проверяются очистка событий, доступ и отсутствие рекурсивных алертов. Реальные CPU/RAM/диск всего действующего стека измеряются до deploy; проверяются retention, ограничение объёма, доступ и разделение алёртов. Если выбранная версия требует Redis или бюджет превышен, применяется описанная процедура выбора/fallback с явным решением владельца, не скрытая смена сервиса или обход PRD.
 
 По уточнению владельца проекта Яндекс Метрика и другая посетительская аналитика не входят в MVP 0.1. Их подключение и связанные с ним проверки не являются условием запуска. Этот пункт не относится к техническим логам, healthchecks и диагностике ошибок действующих сервисов.
 
@@ -105,7 +107,7 @@ GlitchTip и Telegram-alerts уточнены в обновлённом [ADR 000
 
 Общие image/tool versions, PostgreSQL major, migration path и production-like env contract одинаковы в dev/test/prod; credentials и данные различны. CI не получает production secrets. Unit-тесты работают без сети/БД; интеграционные — на PostgreSQL, migration и locking сценарии не подменяются SQLite.
 
-В 0.1 проверяются только существующие компоненты: сборка, links/schema, performance/a11y/SEO, секреты артефакта, atomic static deploy. В 0.2 добавляются config-check, migrations, rollback compatibility, authorization и runtime smoke. В 0.3 — per-channel delivery/recovery; в 0.4 — media, export и restore drills.
+В 0.1 проверяются только существующие компоненты: сборка, links/schema, performance/a11y/SEO, секреты артефакта, atomic static deploy, внешний uptime и уведомления. В 0.2 добавляются config-check, migrations, rollback compatibility, authorization, runtime smoke, централизованные логи, probes, heartbeat, backup/restore PostgreSQL и error tracking по применимому NFR-OPS-01. В 0.3 — per-channel delivery/recovery и расширение error tracking на автопостинг; в 0.4 — media, export и согласованные restore drills БД/медиа.
 
 Path-aware CI всегда выдаёт итоговый обязательный status, включая docs-only PR; shared package, lockfile и contract changes проверяют всех потребителей. Runbook содержит точные команды выбранной инфраструктуры, владельцев, точки диагностики и последние результаты drills. Этот ADR не заменяет будущий исполнимый runbook.
 
@@ -127,7 +129,7 @@ Path-aware CI всегда выдаёт итоговый обязательны�
 ### Отрицательные
 
 - [-] Несколько process types и maintenance-процедур требуют владельца эксплуатации.
-- [-] Внешний backup, GlitchTip и media могут не поместиться в исходный бюджет без уточнения состава.
+- [-] Внешний backup, observability stack и media могут не поместиться в исходный бюджет без уточнения состава.
 - [-] Для согласованного backup/несовместимой migration возможна короткая пауза записей; статика при этом работает.
 
 Пересмотр: новый хостинг/managed DB, несколько серверов, жёсткие RPO/RTO или невозможность выдержать ресурсный бюджет. Не добавлять observability stack или брокер без изменения соответствующих решений.
