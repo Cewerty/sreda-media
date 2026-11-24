@@ -38,7 +38,11 @@ test:
 cov: test
     @echo "cov: отчёт по покрытию ещё не настроен (issue #26)"
 
-# Сборка сайта: apps/site появится после PR #16, пока проверяем контракт.
-build-site:
+# Валидация материалов и медиа перед сборкой (ADR 0014, issue #6).
+check-content:
+    python3 scripts/validate_content.py
+
+# Сборка сайта: реальная сборка Astro включается, когда apps/site попадёт в main (PR #16).
+build-site: check-content
     test -f docs/adr/0014-cross-stack-content-contract.md
-    @echo "build-site: apps/site ещё нет (PR #16), сборка не запускается"
+    if [ -d apps/site ]; then pnpm --filter site build; else echo "build-site: apps/site ещё нет (PR #16), сборка не запускается"; fi
