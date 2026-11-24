@@ -60,12 +60,15 @@ scripts/deploy-static.sh verify https://sreda.sielom.ru /srv/sreda/releases/<п�
 
 Целевой стек: Uptime Kuma для HTTP(S)-проверки витрины и уведомлений в Telegram; Grafana + Alloy + Loki для логов, GlitchTip для исключений (#14). На текущем этапе рабочий сайт/тестовый адрес ещё не зафиксирован, поэтому конкретные URL и порты в этот runbook не вписываются до завершения Q-1.
 
-Подготовленный, но **не включённый** compose-стек лежит в
-`deploy/observability/docker-compose.yml`; схема SQL — `deploy/observability/schema.sql`,
-дашборд — `deploy/observability/grafana-dashboards/overview.json`,
-проверка контракта логов — `just check-logs`. Решение по Kafka и триггеры его
-возврата описаны в ADR 0005. Поднимать стек и создавать алерты можно только
-после PR #16 и Q-1; `serv` не используется.
+Базовый контур логирования **включён по умолчанию**: Loki + Alloy + Grafana
+поднимаются из `deploy/observability/docker-compose.yml` без дополнительных
+профилей. Alloy собирает Caddy и Docker stdout без сэмплирования; локальная разработка
+и CI этого compose не требуют. Prometheus, node_exporter, PostgreSQL и GlitchTip остаются
+под profiles. Схема SQL — `deploy/observability/schema.sql`, дашборд —
+`deploy/observability/grafana-dashboards/overview.json`, контракт логов проверяется
+через `just check-logs` (входит в `just check` в CI). Решение по Kafka и триггеры
+его возврата описаны в ADR 0005. Внешние мониторы и алерты создаём только после
+PR #16 и Q-1; `serv` не используется. В проде переопределяем секреты через env.
 
 При настройке мониторинга обязательны: дедупликация уведомлений, защита от alert storm, проверка восстановления после недоступности, документирование ограничения при падении VPS и фактические расходы (память/CPU/диск/стоимость).
 

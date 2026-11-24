@@ -54,16 +54,26 @@ Grafana + Alloy + Loki, `/healthz` и `/readyz`, GlitchTip и резервное
 PostgreSQL описаны в [runbook](runbook.md) как план этапов 0.2–0.4 и выполняются
 по мере появления CMS (issue #14).
 
-## Подготовленный стек (НЕ включён)
+## Включённый базовый контур логов
 
-Инфраструктура для этапа 0.2 уже подготовлена в репозитории:
-[deploy/observability/docker-compose.yml](../deploy/observability/docker-compose.yml)
-(Grafana, Loki, Alloy, Prometheus, node_exporter, PostgreSQL, GlitchTip),
-[схема SQL](../deploy/observability/schema.sql),
-[дашборд](../deploy/observability/grafana-dashboards/overview.json) и
-[проверка контракта логов](../scripts/check_log_schema.py). Решение и триггеры
-по Kafka зафиксированы в [ADR 0005](adr/0005-observability-glitchtip.md).
+Базовый контур **включён по умолчанию** в
+[deploy/observability/docker-compose.yml](../deploy/observability/docker-compose.yml):
+Loki, Alloy и Grafana поднимаются командой
+`docker compose -f deploy/observability/docker-compose.yml up -d`. Alloy забирает
+access-логи Caddy и stdout/stderr всех контейнеров без сэмплирования; Loki хранит
+их 30 дней с ограниченной кардинальностью меток. Схема SQL
+(../deploy/observability/schema.sql), дашборд
+(../deploy/observability/grafana-dashboards/overview.json) и проверка контракта
+(../scripts/check_log_schema.py) остаются на месте.
 
-Стек **не запущен**, мониторы на несуществующий адрес не созданы, уведомления
-не настроены. Включение возможно только после PR #16 (`apps/site` в main) и Q-1
-(тестовый адрес/DNS). Личный сервер автора (`serv`) для этого не используется.
+Никому из разработчиков не нужно запускать этот compose: приложение по-прежнему
+пишет JSON в stdout, без Kafka-клиентов и новых обязательных переменных. Контракт
+логов проверяется в CI через `just check` (зависимость от `check-logs`), поэтому
+новый обязательный статус не вводится. Prometheus, node_exporter, PostgreSQL и
+GlitchTip остаются под `profiles` и включаются только по ресурсам VPS.
+
+В прод обязательно переопределить `GRAFANA_ADMIN_PASSWORD` и остальные секреты
+переменными окружения; значения в репозитории — только для локального запуска.
+Все порты слушают `127.0.0.1` и публикуются через Caddy. Внешние мониторы и
+алерты по-прежнему ждут PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
+Личный сервер автора (`serv`) не используется.

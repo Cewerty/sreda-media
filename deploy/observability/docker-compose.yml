@@ -1,13 +1,17 @@
-# Подготовленный стек наблюдаемости. НЕ включается по умолчанию.
+# Базовый контур логирования включён по умолчанию: Loki + Alloy + Grafana.
 # ADR 0005, issue #14. serv (личный сервер автора) не используется.
 #
 # Проверка синтаксиса: docker compose -f deploy/observability/docker-compose.yml config
-# Запуск только после появления сайта и тестового адреса (Q-1, PR #16):
-#   docker compose -f deploy/observability/docker-compose.yml --profile logs up -d
-#   docker compose -f deploy/observability/docker-compose.yml --profile sql up -d
-#   docker compose -f deploy/observability/docker-compose.yml --profile errors up -d
+# Запуск базового контура (без изменений в приложениях):
+#   docker compose -f deploy/observability/docker-compose.yml up -d
+# Дополнительные контуры — только под profiles, по ресурсам VPS:
+#   --profile logs   → Prometheus + node_exporter (метрики)
+#   --profile sql    → PostgreSQL с отобранными событиями
+#   --profile errors → GlitchTip
 #
-# Секреты задаются переменными окружения на VPS; в репозитории только safest默认值.
+# Локальная разработка и CI НЕ требуют запуска этого compose: приложение пишет
+# JSON в stdout, без клиентов Kafka. Секреты задаются переменными окружения на
+# VPS; в репозитории только значения по умолчанию для локального запуска.
 # Все порты слушают только 127.0.0.1 и публикуются через Caddy.
 
 name: sreda-observability
@@ -15,13 +19,12 @@ name: sreda-observability
 x-logging: &default-logging
   driver: json-file
   options:
-    max-size: "10m"
-    max-file: "3"
+    max-size: "50m"
+    max-file: "5"
 
 services:
   loki:
     image: grafana/loki:3.5.5
-    profiles: ["logs"]
     restart: unless-stopped
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
@@ -33,12 +36,12 @@ services:
 
   alloy:
     image: grafana/alloy:v1.10.1
-    profiles: ["logs"]
     restart: unless-stopped
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     volumes:
       - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/log/caddy:/var/log/caddy:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - alloy-data:/var/lib/alloy/data
     ports:
       - "127.0.0.1:12345:12345"
@@ -70,7 +73,6 @@ services:
 
   grafana:
     image: grafana/grafana:12.3.0
-    profiles: ["logs", "sql", "errors"]
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -86,7 +88,6 @@ services:
       - "127.0.0.1:3000:3000"
     depends_on:
       - loki
-      - prometheus
     logging: *default-logging
 
   postgres:

@@ -23,11 +23,12 @@ query_range:
         max_size_mb: 32
 
 limits_config:
-  # ADR 0005: конечный retention и ограниченная кардинальность меток.
-  retention_period: 336h
-  ingestion_rate_mb: 2
-  ingestion_burst_size_mb: 4
-  max_streams_per_user: 2000
+  # ADR 0005: максимальный сбор без сэмплирования, но с конечным retention
+  # и фиксированным потолком диска. Метки остаются низкой кардинальности.
+  retention_period: 720h
+  ingestion_rate_mb: 10
+  ingestion_burst_size_mb: 20
+  max_streams_per_user: 10000
   reject_old_samples: true
   reject_old_samples_max_age: 168h
 

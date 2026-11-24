@@ -14,8 +14,9 @@ install:
 api-check:
     cd apps/cms-api && uv sync --frozen && UV_NO_SYNC=1 just check
 
-# Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
-check:
+# Документация, ADR, ссылки, CODEOWNERS, шаблонные секреты и контракт логов.
+# Запускается в CI через conventions.yml: новый обязательный статус не нужен.
+check: check-logs
     python3 scripts/check.py
 
 check-logs:

@@ -1,11 +1,14 @@
-// ADR 0005: локальный сбор очищенных JSON-логов Caddy и передача в Loki.
-// Сервис не является синхронной зависимостью приложения: при падении Alloy
+// ADR 0005: максимальный сбор очищенных JSON-логов Caddy и Docker stdout.
+// Alloy не является синхронной зависимостью приложения: при его падении
 // приложение продолжает работать, логи просто перестают попадать в хранилище.
+// Сэмплирование не применяется; PII и секреты отфильтровываются контрактом
+// scripts/check_log_schema.py до попадания события в JSON stdout.
 
 logging {
   level = "info"
 }
 
+// Access-логи Caddy уже структурированы: забираем как есть.
 loki.source.file "caddy" {
   targets = [{
     __path__     = "/var/log/caddy/*.log"
@@ -13,6 +16,40 @@ loki.source.file "caddy" {
     component    = "caddy"
     environment  = "production"
   }]
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// stdout/stderr всех контейнеров: конверт Docker json-file -> исходная строка.
+// Внутри строки ожидается JSON по контракту ADR 0005, но обычный текст тоже
+// попадает в Loki без потери.
+loki.source.file "docker" {
+  targets = [{
+    __path__    = "/var/lib/docker/containers/*/*-json.log"
+    job         = "docker"
+    environment = "production"
+  }]
+
+  forward_to = [loki.process.docker.receiver]
+}
+
+loki.process "docker" {
+  stage.json {
+    expressions = {
+      log    = "log"
+      stream = "stream"
+    }
+  }
+
+  stage.labels {
+    values = {
+      stream = "stream"
+    }
+  }
+
+  stage.output {
+    source = "log"
+  }
 
   forward_to = [loki.write.default.receiver]
 }
