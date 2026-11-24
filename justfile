@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime check-host-config check-slo docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -71,6 +71,18 @@ check-slo:
 # DR-репетиция во временном каталоге, без /srv и systemd.
 dr-drill:
     bash scripts/dr-drill.sh
+
+# Диагностика инструментов: справка, всегда exit 0.
+doctor:
+    bash scripts/doctor.sh
+
+# Проверка команд в bash-блоках документации.
+check-runbook:
+    python3 scripts/check_runbook_commands.py
+
+# Аудит SHA-пинов внешних GitHub Actions.
+audit-workflows:
+    python3 scripts/audit_workflows.py
 
 # Неблокирующий сбор coverage в coverage-reports/ с SHA256SUMS.
 coverage: install
