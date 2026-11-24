@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       force_tests:
-        description: 'Прогнать проверки CMS Web и Astro независимо от изменённых путей'
+        description: 'Прогнать проверки CMS Web, CMS API и Astro независимо от изменённых путей'
         type: boolean
         default: false
 
@@ -31,6 +31,7 @@ jobs:
     outputs:
       site_needed: ${{ steps.detect.outputs.site_needed }}
       tests_needed: ${{ steps.detect.outputs.tests_needed }}
+      cms_api_needed: ${{ steps.detect.outputs.cms_api_needed }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -57,10 +58,11 @@ jobs:
 
           site_needed=false
           tests_needed=false
+          cms_api_needed=false
           if [ -d apps/site ] && grep -Eq '^apps/site/|^packages/(remark-directives|article-styles)/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt; then
             site_needed=true
           fi
-          if grep -Eq '^apps/cms-web/|^apps/cms-api/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+          if grep -Eq '^apps/cms-web/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt; then
             tests_needed=true
           fi
           # Правки самих проверок и общих зависимостей затрагивают всех потребителей.
@@ -73,8 +75,17 @@ jobs:
             site_needed=true
             tests_needed=true
           fi
+          # #41 приносит production-профиль. Проверяем и BASE, чтобы удаление
+          # профиля из уже подключённого компонента приводило к ошибке gate.
+          if [ -f apps/cms-api/.env.deploy-check ] || git cat-file -e "$BASE:apps/cms-api/.env.deploy-check" 2>/dev/null; then
+            if [ "${FORCE_TESTS:-false}" = "true" ] ||
+              grep -Eq '^apps/cms-api/|^\.github/(workflows/(ci|cms-api)\.yml$|actions/)|^\.python-version$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+              cms_api_needed=true
+            fi
+          fi
           echo "site_needed=$site_needed" >> "$GITHUB_OUTPUT"
           echo "tests_needed=$tests_needed" >> "$GITHUB_OUTPUT"
+          echo "cms_api_needed=$cms_api_needed" >> "$GITHUB_OUTPUT"
 
   workflows-lint:
     name: Workflows lint
@@ -93,10 +104,16 @@ jobs:
     uses: ./.github/workflows/secrets.yml # zizmor: ignore[self-repository]
 
   tests:
-    name: Tests
+    name: CMS Web
     needs: changes
     if: needs.changes.outputs.tests_needed == 'true'
     uses: ./.github/workflows/tests.yml # zizmor: ignore[self-repository]
+
+  cms-api:
+    name: CMS API
+    needs: changes
+    if: needs.changes.outputs.cms_api_needed == 'true'
+    uses: ./.github/workflows/cms-api.yml # zizmor: ignore[self-repository]
 
   site-build:
     name: Site build
@@ -107,7 +124,7 @@ jobs:
   ci:
     name: ci
     if: always()
-    needs: [changes, workflows-lint, conventions, config-lint, secrets, tests, site-build]
+    needs: [changes, workflows-lint, conventions, config-lint, secrets, tests, cms-api, site-build]
     runs-on: ubuntu-latest
     steps:
       - name: Проверить результаты
@@ -118,8 +135,10 @@ jobs:
           CONFIG_LINT: ${{ needs.config-lint.result }}
           SECRETS: ${{ needs.secrets.result }}
           TESTS: ${{ needs.tests.result }}
+          CMS_API: ${{ needs.cms-api.result }}
           SITE: ${{ needs.site-build.result }}
           TESTS_NEEDED: ${{ needs.changes.outputs.tests_needed }}
+          CMS_API_NEEDED: ${{ needs.changes.outputs.cms_api_needed }}
           SITE_NEEDED: ${{ needs.changes.outputs.site_needed }}
         run: |
           set -euo pipefail
@@ -134,6 +153,7 @@ jobs:
             echo "| config-lint | $CONFIG_LINT | always |"
             echo "| secrets | $SECRETS | always |"
             echo "| tests | $TESTS | $TESTS_NEEDED |"
+            echo "| cms-api | $CMS_API | $CMS_API_NEEDED |"
             echo "| site-build | $SITE | $SITE_NEEDED |"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -161,6 +181,7 @@ jobs:
           check_required config-lint "$CONFIG_LINT"
           check_required secrets "$SECRETS"
           check_optional tests "$TESTS" "$TESTS_NEEDED"
+          check_optional cms-api "$CMS_API" "$CMS_API_NEEDED"
           check_optional site-build "$SITE" "$SITE_NEEDED"
           if [ "$failed" -ne 0 ]; then
             exit 1

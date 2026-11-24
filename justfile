@@ -13,6 +13,9 @@ check:
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:
     uv run --project apps/cms-api ruff check apps/cms-api
+    just lint-web
+
+lint-web:
     pnpm --filter @sreda/cms-web check
 
 # Валидация конфигурационных файлов репозитория.
@@ -29,10 +32,12 @@ secrets:
     "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner
 
 # Тесты доступных компонентов.
-test:
-    pnpm --filter @sreda/cms-web test
+test: test-web
     # cms-api: тесты из PR #42 пока не в main (stacked PR на chore/27-cms-foundation-base).
     if [ -d apps/cms-api/tests ]; then uv run --project apps/cms-api python -m pytest apps/cms-api/tests -q; else echo "cms-api: тестов пока нет в main (PR #42)"; fi
+
+test-web:
+    pnpm --filter @sreda/cms-web test
 
 # Покрытие: пока заглушка, чтобы не создавать иллюзию полноценного прогона.
 cov: test

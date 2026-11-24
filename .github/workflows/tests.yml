@@ -1,6 +1,6 @@
 name: Tests
 
-# Переиспользуемый workflow: тесты и линтеры затронутых компонентов.
+# Переиспользуемый workflow: линтеры и тесты CMS Web.
 on:
   workflow_call:
 
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   tests:
-    name: CMS web + API
+    name: Lint and test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,13 +25,7 @@ jobs:
           cache: pnpm
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
-      - name: Setup uv
-        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
-      - name: Sync Python workspace
-        run: uv sync --frozen
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
       - name: Lint and test
-        run: |
-          just lint
-          just test
+        run: just lint-web test-web
