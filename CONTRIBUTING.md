@@ -49,10 +49,13 @@
 Одна команда для чистого checkout:
 
 ```bash
+test -f apps/cms-api/.env || cp apps/cms-api/.env.example apps/cms-api/.env
 just verify
 ```
 
-`verify` запускает все применимые проверки: `check` (документы, ADR, ссылки, CODEOWNERS), `lint` (ruff + Biome), `config-lint`, `workflows-lint` (actionlint + zizmor), `secrets` (gitleaks по всей истории), `test` (Vitest и, когда появятся, Django-тесты) и `build-site` (валидация контента ADR 0014 и сборка Astro). Дополнительно доступны `just check-content`, `just cov` и `just lint` по отдельности.
+Перед `just verify` запусти тестовый PostgreSQL 18 с параметрами из `apps/cms-api/.env`. Шаблон рассчитан на `127.0.0.1:5432`, базу и пользователя `sreda`. При другом адресе или учётных данных обнови локальный `.env`. Пользователю БД нужно право создавать тестовую базу Django.
+
+`verify` проверяет документацию, конфигурацию, workflows, историю на секреты, пример CMS-лога, CMS Web и витрину. Рецепт `api-check` запускает полный gate CMS API: Ruff, Pyright, Django checks, проверку миграций, `deploy-strict` и pytest. Строгая deploy-проверка использует синтетический `.env.deploy-check`. Для отдельного запуска доступны `just api-check` и `just check-logs`.
 
 Зависимости для чистого checkout: Python 3.14+, [uv](https://docs.astral.sh/uv/) 0.9+, Node.js 22+, pnpm 12.x (через `corepack`), Go 1.24+ (для gitleaks и actionlint) и `just`. Если `just` не установлен, используй `uvx --from rust-just just verify`. На Windows запускай команды через Git Bash: рецепты рассчитаны на bash.
 

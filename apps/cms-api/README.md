@@ -20,7 +20,8 @@ uv sync --all-packages     # важно: без --all-packages корневой 
                            # проект не тянет зависимости cms-api
 ```
 
-Дальше команды выполняются из `apps/cms-api`:
+Скопируй `apps/cms-api/.env.example` в `apps/cms-api/.env` и запусти доступный
+PostgreSQL 18. Дальше команды выполняются из `apps/cms-api`:
 
 ```bash
 uv run manage.py check
@@ -29,6 +30,28 @@ uv run manage.py migrate
 uv run manage.py collectstatic --noinput
 uv run manage.py runserver
 ```
+
+## Конфигурация и диагностика
+
+Переменные процесса имеют приоритет над `.env`. При `DJANGO_ENV=production`
+в окружении процесса приложение читает конфигурацию только из окружения.
+Укажи `DJANGO_DEBUG=false`,
+собственный `DJANGO_SECRET_KEY` (от 50 символов), `DJANGO_ALLOWED_HOSTS` через
+запятую и `RELEASE` (тег или SHA). Также задай `POSTGRES_HOST`, `POSTGRES_PORT`,
+`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, SMTP-бэкенд
+`EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT` и `DEFAULT_FROM_EMAIL`. Остальные
+параметры SMTP описаны в `.env.example`.
+
+Из выбранного образа перед миграцией или переключением версии выполни
+`uv run manage.py check --deploy --fail-level WARNING` с production-окружением.
+Ошибка bootstrap укажет имя параметра и нарушенное правило без значения секрета.
+`just deploy-strict` использует синтетический `.env.deploy-check` для локального
+gate и CI. Доступность зависимостей после запуска проверяет `/readyz`.
+
+CMS возвращает `X-Correlation-ID` в HTTP-ответе. Найди этот UUID в поле
+`correlation_id` события `request_finished` в stdout процесса.
+`LOG_LEVEL` управляет остальными прикладными сообщениями (по умолчанию INFO).
+[Спецификация и пример события](../../docs/specs/cms-runtime-config-and-logging.md).
 
 ## Статика
 
@@ -59,6 +82,28 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
 Официальная установка: `uvx library-skills --all -y --copy --no-tool-skill`
 (из корня, после `uv sync --all-packages`).
 
+## Health / readiness
+
+Пробы `cms-api` (NFR-OPS-04, ADR 0006 §1, ADR 0015 §4). Спецификация и критерии
+приёмки — [`docs/specs/ops-04-health-readiness.md`](../../docs/specs/ops-04-health-readiness.md).
+
+| | `/healthz` | `/readyz` |
+| --- | --- | --- |
+| Проверяет | живой Django-процесс | используемые зависимости (в 0.2 — БД) |
+| Вызовы БД / внешних API | **нет** | да, с ограниченным таймаутом |
+| Успех / отказ | 200 / — | 200 / **503** |
+
+Пути в корне, вне `/api/` и OpenAPI; пробы анонимны, auth/CSRF не требуются.
+Тела ответов не содержат DSN, путей и raw exception. Проверка media storage
+подключается в 0.4 (EDIT-02), heartbeat worker/scheduler — отдельная работа #14.
+`HealthProvider` зарегистрирован в единственном composition root
+`apps/core/apps.py` (после PR #42 `config/asgi.py` контейнер не собирает).
+
+```bash
+curl -i http://127.0.0.1:8000/healthz   # 200 {"status":"ok"}
+curl -i http://127.0.0.1:8000/readyz   # 200 ... | 503 {"detail":[...]}
+```
+
 ## Что пока не сделано
 
 Это перенесённая основа, а не готовый CMS. Открыто и вынесено в отдельные задачи:
@@ -67,9 +112,7 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
   (ADR 0004 §2), роли PRD, `ProviderIdentity` и вход через Telegram без паролей
   (ADR 0009). Текущие `POST /api/v1/users/` и `PUT /api/v1/users/<id>/` создают
   пользователя с паролем и меняют пароль — это донорский прототип, не AUTH-01…04.
-- **#26** — quality gate: тесты, `tach` (ADR 0011), CI, config-check.
-- **#27 / #28** — структурные логи и `/healthz`, `/readyz` (ADR 0015).
-- Конфигурация сейчас захардкожена в `config/settings.py` (`SECRET_KEY`, `DEBUG=True`,
-  `ALLOWED_HOSTS=["*"]`, SQLite). Приведение к env и PostgreSQL — ADR 0015 §2–3, #26/#14.
-- Django и `daphne` используются напрямую, но объявлены только транзитивно
-  (через `django-modern-rest`). Явные зависимости — в #26.
+- **#26** — расширение тестов Django и наполнение `tach.toml` (ADR 0011).
+  CMS workflow выполняет `uv sync --frozen` и `just ci` с PostgreSQL.
+- `/healthz` и `/readyz` реализованы (#28). Таймауты PostgreSQL и общий бюджет
+  readiness задаются через окружение (#41).

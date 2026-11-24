@@ -19,10 +19,14 @@ node_modules/
 *.tsbuildinfo
 coverage/
 
+# just contract: временный экспорт схемы
+apps/cms-api/openapi.json.tmp
+
 # Окружение и секреты (NFR-SEC-03)
 .env
 .env.*
 !.env.example
+!apps/cms-api/.env.deploy-check
 
 # Редактор и ОС
 .vscode/

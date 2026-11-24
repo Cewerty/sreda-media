@@ -11,9 +11,7 @@ import os
 import sys
 from pathlib import Path
 
-from dishka import make_async_container
 from django.core.asgi import get_asgi_application
-from dmr_dishka.integration import setup_dishka
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
@@ -21,12 +19,4 @@ if str(BASE_DIR) not in sys.path:
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-django_asgi_app = get_asgi_application()
-
-# Импортируем провайдер после инициализации настроек Django
-from apps.core.ioc import AppProvider  # noqa: E402
-
-container = make_async_container(AppProvider())
-setup_dishka(container)
-
-application = django_asgi_app
+application = get_asgi_application()

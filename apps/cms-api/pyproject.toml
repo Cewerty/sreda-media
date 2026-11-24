@@ -5,12 +5,42 @@ description = "Микро-CMS Sreda Media: Django + DMR (ADR 0004, 0011)"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    # Явные зависимости: используются напрямую, а не только транзитивно (dhr-transfer.md §6).
+    "django>=6.1.2",
+    "daphne>=4.2.3",
     "dishka>=1.10.1",
     "django-modern-rest[jwt,msgspec,openapi,pydantic]>=0.16.0",
     "dmr-dishka>=0.1.1",
-    "ruff>=0.17.1",
     "uvicorn>=0.54.0",
     "whitenoise>=6.12.0",
+    "pydantic-settings>=2.16.0",
+    "psycopg[binary]>=3.2",
+    "structlog>=26.1.0",
+]
+
+# Ставится из корня: `uv sync --all-packages`. В CI — `uv sync --frozen`.
+# Dev-группа не попадает в продовый образ.
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+    # Pyright вместо mypy: быстрее на прототипе. Extra nodejs тащит bundled Node,
+    # поэтому внешний Node/npm для проверки типов не нужен.
+    "pyright[nodejs]>=1.1.414",
+    # Стабы Django для pyright. БЕЗ extra compatible-mypy: он притащил бы mypy,
+    # от которого мы отказались. Версия совпадает с django==6.1.2.
+    "django-stubs>=6.1.2",
+    # Быстрый Git hooks manager на Go, аналог pre-commit.
+    "lefthook>=2.2.2",
+    "pytest>=8.3",
+    "pytest-django>=4.14.0",
+    "pytest-cov>=6.0",
+    "pytest-xdist>=3.6",
+    "polyfactory>=3.5.0",
+    "schemathesis>=4.34.1",
+    "django-test-migrations>=1.7.0",
+    "django-migration-linter>=7.0.0",
+    "django-upgrade>=1.33.0",
+    "tach>=0.35.3",
 ]
 
 [tool.uv]
@@ -51,6 +81,11 @@ exclude = [
 line-length = 120
 indent-width = 4
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
 [tool.ruff.lint]
 preview = false
 select = [
@@ -73,6 +108,7 @@ select = [
     "N",
     "D",
 ]
+# Доступно для `ruff check --fix` вручную. Гейт всегда вызывает `--no-fix`.
 fixable = ["ALL"]
 unfixable = []
 ignore = [
@@ -84,10 +120,9 @@ ignore = [
     "RUF029",
     "RUF001",
     "RUF003",
-    # D1xx — не требовать обязательное наличие docstrings
+    # D101/D102 НЕ игнорируются глобально: docstrings обязательны в transport-слое
+    # (контроллеры и эндпоинты), откуда DMR берёт описания OpenAPI.
     "D100",  # Missing docstring in public module
-    "D101",  # Missing docstring in public class
-    "D102",  # Missing docstring in public method
     "D103",  # Missing docstring in public function
     "D104",  # Missing docstring in public package
     "D105",  # Missing docstring in magic method
@@ -95,12 +130,25 @@ ignore = [
     "D107",  # Missing docstring in __init__
     "D212",  # Multi-line summary first line
 ]
-exclude = ["test_*", "__init__.py"]
+
+# Тесты и __init__ больше не исключаются целиком — точечные послабления вместо exclude.
+[tool.ruff.lint.per-file-ignores]
+"config/**" = ["D101", "D102"]
+"manage.py" = ["D101", "D102"]
+"apps/**/__init__.py" = ["F401"]
+"apps/**/apps.py" = ["D101", "D102"]
+"apps/**/admin.py" = ["D101", "D102"]
+"apps/**/models.py" = ["D101", "D102"]
+"apps/**/schemas.py" = ["D101", "D102"]
+"apps/**/services.py" = ["D101", "D102"]
+"apps/**/ioc.py" = ["D101", "D102"]
+"apps/**/exceptions.py" = ["D101", "D102"]
+"apps/**/migrations/**" = ["D101", "D102"]
+"tests/**" = ["D", "S101", "S105", "S106", "ANN", "PLR2004"]
+"**/conftest.py" = ["D", "S101", "S105", "S106", "ANN", "PLR2004"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.ruff.lint.per-file-ignores]
 
 [tool.ruff.lint.isort]
 known-first-party = ["apps"]
@@ -111,3 +159,31 @@ section-order = [
     "first-party",
     "local-folder"
 ]
+
+[tool.pyright]
+# Запускать из apps/cms-api: `uv run pyright`.
+include = ["apps", "config"]
+exclude = ["**/migrations", "**/static"]
+pythonVersion = "3.14"
+venvPath = "../.."
+venv = ".venv"
+# Прототип: базовый уровень, после #25 поднять до "standard".
+# django-stubs (без mypy) закрывает дескрипторы ORM: CharField, DoesNotExist,
+# add_fieldsets, TextChoices. Все правила проверки типов работают на error.
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportPrivateUsage = false
+reportOptionalIterable = "error"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = ["*/migrations/*", "*/tests/*"]
