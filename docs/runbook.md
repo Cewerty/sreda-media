@@ -82,6 +82,13 @@ label на `enabled="true"` и задать `GRAFANA_TELEGRAM_CHAT_ID`
 и `GRAFANA_TELEGRAM_BOT_TOKEN` переменными окружения на VPS. Provisioned-ресурсы
 редактируются только в этих файлах, не в UI Grafana.
 
+Проверка provisioning — `uvx --from rust-just just check-alerts` (входит в `verify`):
+сверяет `apiVersion`, env-ссылки для `chatid`/`bottoken`, наличие receiver в политике,
+`object_matchers ['enabled', '=', 'true']` и то, что все правила по-прежнему имеют
+`enabled="false"`. Негативный тест (временная замена `enabled` на `true`) должен
+падать с exit 1. Шаблон переменных — `deploy/observability/.env.example`; заполненный
+`.env` создаётся на VPS и в репозиторий не попадает.
+
 При настройке мониторинга обязательны: дедупликация уведомлений, защита от alert storm, проверка восстановления после недоступности, документирование ограничения при падении VPS и фактические расходы (память/CPU/диск/стоимость).
 
 ## 8. Резервное копирование и восстановление (этап 0.2)

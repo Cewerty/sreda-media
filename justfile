@@ -2,8 +2,8 @@
 # Вызов: just <recipe>. Список: just --list.
 set shell := ["bash", "-uc"]
 
-# Всё сразу: то, что обязательно в CI.
-verify: check check-logs install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+# Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
+verify: check check-logs check-alerts install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -19,13 +19,16 @@ api-env: install
 api-check: api-env
     cd apps/cms-api && uv sync --frozen && UV_NO_SYNC=1 just check
 
-# Документация, ADR, ссылки, CODEOWNERS, шаблонные секреты и контракт логов.
-# Запускается в CI через conventions.yml: новый обязательный статус не нужен.
-check: check-logs
+# Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
+check:
     python3 scripts/check.py
 
 check-logs:
     python3 scripts/check_log_schema.py
+
+# Provisioning Grafana Alerting: секреты через env, правила отключены до сайта и адреса.
+check-alerts:
+    uv run --with pyyaml==6.0.4 python scripts/check_alert_rules.py
 
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:

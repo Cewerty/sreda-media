@@ -83,7 +83,11 @@ Grafana provisioning лежит в подпапках
 подготовлены, но у всех правил стоит label `enabled="false"` и они не попадают
 под маршрут из `alerting/policies.yml`, поэтому уведомлений нет. Включение внешних
 мониторов и алертов — после PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
-Бэкап PostgreSQL/Grafana и восстановление описаны в [runbook](runbook.md) (этап 0.2).
+Provisioning проверяется рецептом `just check-alerts` внутри `verify`: секреты Telegram
+должны быть env-ссылками, правила — отключены (`enabled="false"`), маршрут политик —
+только для `enabled=true`. Шаблон env-переменных лежит в
+`deploy/observability/.env.example`. Бэкап PostgreSQL/Grafana и восстановление описаны
+в [runbook](runbook.md) (этап 0.2).
 Локальный контур для разработчиков с высокими портами и отдельными volume описан в
 [DEV-OBSERVABILITY.md](DEV-OBSERVABILITY.md): он не монтирует системные логи и не
 конфликтует с рабочими сервисами. Аудиты зависимостей и SBOM идут в отдельном
