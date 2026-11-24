@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime check-host-config docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime check-host-config check-slo docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -63,6 +63,14 @@ check-uptime:
 # Хостовые шаблоны Caddy/Docker/journald как код.
 check-host-config:
     python3 scripts/check_host_config.py
+
+# Сверка SLO, дашборда и выключенных правил.
+check-slo:
+    uv run --with pyyaml==6.0.4 python scripts/check_slo.py
+
+# DR-репетиция во временном каталоге, без /srv и systemd.
+dr-drill:
+    bash scripts/dr-drill.sh
 
 # Неблокирующий сбор coverage в coverage-reports/ с SHA256SUMS.
 coverage: install
