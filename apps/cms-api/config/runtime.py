@@ -22,12 +22,14 @@ from dmr.settings import default_parser, default_renderer
 from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+
 
 class AppSettings(BaseSettings):
     """Параметры процесса CMS, проверяемые до запуска приложения."""
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[1] / ".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=True,
@@ -149,9 +151,9 @@ class AppSettings(BaseSettings):
 @lru_cache(maxsize=1)
 def _load_settings() -> AppSettings:
     """Один раз собрать и проверить конфигурацию на bootstrap."""
-    if os.environ.get("DJANGO_ENV") == "production":
-        return AppSettings(_env_file=None)
-    return AppSettings()
+    env_file = None if os.environ.get("DJANGO_ENV") == "production" else _ENV_FILE
+    # Pyright sees required model fields but BaseSettings populates them from its sources.
+    return AppSettings(_env_file=env_file)  # pyright: ignore[reportCallIssue]
 
 
 def get_settings() -> AppSettings:
