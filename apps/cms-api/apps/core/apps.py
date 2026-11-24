@@ -28,6 +28,7 @@ class CoreConfig(AppConfig):
     def ready(self) -> None:
         """Собрать Dishka-контейнер и подключить его к DMR."""
         # Импорт внутри ready(): на уровне модуля models ещё недоступны.
+        from apps.core.health.di import HealthProvider  # noqa: PLC0415
         from apps.core.ioc import AppProvider  # noqa: PLC0415
 
         if hasattr(self, "request_log"):
@@ -36,7 +37,11 @@ class CoreConfig(AppConfig):
         logger = configure_logging(settings)
         http_logger = structlog.stdlib.get_logger("cms.http").bind(**structlog.get_context(logger))
         self.request_log = RequestLog(http_logger)
-        container = make_async_container(AppProvider(), context={AppSettings: settings, BoundLogger: logger})
+        container = make_async_container(
+            AppProvider(),
+            HealthProvider(),
+            context={AppSettings: settings, BoundLogger: logger},
+        )
         setup_dishka(container)
         index = django_settings.MIDDLEWARE.index("dmr_dishka.container.container_middleware")
         django_settings.MIDDLEWARE[index] = "apps.core.apps.async_container_middleware"

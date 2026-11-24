@@ -44,6 +44,12 @@
 
 ## Границы и структура
 
+- Health/readiness (`apps/core/health/`) — анонимные DMR-пробы в корне, вне
+  `/api/` и OpenAPI; `/healthz` без Dishka-зависимостей и без БД. Спецификация —
+  [`docs/specs/ops-04-health-readiness.md`](../../docs/specs/ops-04-health-readiness.md).
+  `HealthProvider` регистрируется только в `apps/core/apps.py`: после PR #42
+  это единственный composition root, `config/asgi.py` контейнер не собирает.
+
 - `apps/cms-api` владеет состоянием CMS и серверными правилами предметной области.
   `apps/cms-web` (React) общается только по HTTP-контракту DMR/OpenAPI.
 - Слои (ADR 0011): тонкий transport (DMR controller) → application service
@@ -136,5 +142,6 @@ TS-клиента). Костя переносит рецепты в общий j
   `--contract` пока только сверяет схему с `openapi.json`.
 - `build_404/500/csrf_handler` остаются отдельной работой. HTTP-логи и
   runtime-конфигурация описаны в [спецификации #27](../../docs/specs/cms-runtime-config-and-logging.md).
-- `/healthz` и `/readyz` — #28, PostgreSQL — #26/#14.
+- `/healthz` и `/readyz` реализованы (#28); PostgreSQL, `connect_timeout` /
+  `statement_timeout` и prod-профиль конфигурации — #41/#26/#14.
 - Явные зависимости `django`/`daphne` добавлены; `uv.lock` пересобран.

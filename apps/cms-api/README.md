@@ -72,6 +72,28 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
 Официальная установка: `uvx library-skills --all -y --copy --no-tool-skill`
 (из корня, после `uv sync --all-packages`).
 
+## Health / readiness
+
+Пробы `cms-api` (NFR-OPS-04, ADR 0006 §1, ADR 0015 §4). Спецификация и критерии
+приёмки — [`docs/specs/ops-04-health-readiness.md`](../../docs/specs/ops-04-health-readiness.md).
+
+| | `/healthz` | `/readyz` |
+| --- | --- | --- |
+| Проверяет | живой Django-процесс | используемые зависимости (в 0.2 — БД) |
+| Вызовы БД / внешних API | **нет** | да, с ограниченным таймаутом |
+| Успех / отказ | 200 / — | 200 / **503** |
+
+Пути в корне, вне `/api/` и OpenAPI; пробы анонимны, auth/CSRF не требуются.
+Тела ответов не содержат DSN, путей и raw exception. Проверка media storage
+подключается в 0.4 (EDIT-02), heartbeat worker/scheduler — отдельная работа #14.
+`HealthProvider` зарегистрирован в единственном composition root
+`apps/core/apps.py` (после PR #42 `config/asgi.py` контейнер не собирает).
+
+```bash
+curl -i http://127.0.0.1:8000/healthz   # 200 {"status":"ok"}
+curl -i http://127.0.0.1:8000/readyz   # 200 ... | 503 {"detail":[...]}
+```
+
 ## Что пока не сделано
 
 Это перенесённая основа, а не готовый CMS. Открыто и вынесено в отдельные задачи:
@@ -84,4 +106,4 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
   полная env-конфигурация. Гейт уже добавлен: `justfile`, `config_check.py`,
   pyright, ruff, dev-зависимости, `lefthook.yml`, `uv.lock`.
   Команда для CI — `just check` (алиас `just ci`).
-- **#28** — `/healthz` и `/readyz`. PostgreSQL — #26/#14.
+- `/healthz` и `/readyz` реализованы (#28); PostgreSQL и таймауты драйвера — #41/#26/#14.
