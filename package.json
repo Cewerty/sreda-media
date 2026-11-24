@@ -1,0 +1,17 @@
+{
+  "name": "sreda-media",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Монорепозиторий Sreda Media: сайт, микро-CMS и бот (ADR 0007)",
+  "packageManager": "pnpm@12.23.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:cms": "pnpm --filter @sreda/cms-web dev",
+    "build:cms": "pnpm --filter @sreda/cms-web build",
+    "verify:cms": "pnpm --filter @sreda/cms-web verify",
+    "check:cms": "pnpm --filter @sreda/cms-web check",
+    "test:cms": "pnpm --filter @sreda/cms-web test"
+  }
+}

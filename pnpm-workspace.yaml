@@ -1,0 +1,12 @@
+# JS/TS workspace монорепозитория (ADR 0007).
+# Python-часть живёт в uv workspace: см. корневой pyproject.toml.
+packages:
+  - "apps/cms-web"
+  - "packages/*"
+
+# pnpm 10+ по умолчанию запрещает postinstall-скрипты зависимостей.
+# esbuild и Biome ставят платформенный бинарник именно так — без них
+# не работают ни vite, ни biome check. Формат allowBuilds — pnpm 12.
+allowBuilds:
+  "@biomejs/biome": true
+  esbuild: true
