@@ -83,9 +83,11 @@ jobs:
               cms_api_needed=true
             fi
           fi
-          echo "site_needed=$site_needed" >> "$GITHUB_OUTPUT"
-          echo "tests_needed=$tests_needed" >> "$GITHUB_OUTPUT"
-          echo "cms_api_needed=$cms_api_needed" >> "$GITHUB_OUTPUT"
+          {
+            echo "site_needed=$site_needed"
+            echo "tests_needed=$tests_needed"
+            echo "cms_api_needed=$cms_api_needed"
+          } >> "$GITHUB_OUTPUT"
 
   workflows-lint:
     name: Workflows lint
