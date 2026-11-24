@@ -1,16 +1,8 @@
 name: CMS API
 
 on:
-  # Переходный самостоятельный запуск для stacked PR #43.
-  # Для PR в main и пушей на main workflow вызывает ci.yml.
-  pull_request:
-    branches: [chore/27-cms-foundation-base]
-    paths:
-      - 'apps/cms-api/**'
-      - '.github/workflows/cms-api.yml'
-      - '.python-version'
-      - 'pyproject.toml'
-      - 'uv.lock'
+  # Только по вызову ci.yml: оркестратор сам решает, нужен ли CMS API gate
+  # (cms_api_needed). Мёртвый stacked-триггер для #43 удалён.
   workflow_call:
 
 permissions:

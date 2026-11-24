@@ -3,13 +3,33 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI.
-verify: check check-logs install lint types test build-web config-lint workflows-lint secrets build-site
+verify: check check-logs install lint types test build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
 install:
     pnpm install --frozen-lockfile
     uv sync --frozen
+
+# Полный quality gate CMS API из apps/cms-api/justfile (PR #45).
+# Пока вложенный justfile не в main, выполняется базовый ruff/pytest без иллюзии полного прогона.
+api-env: install
+    if [ ! -f apps/cms-api/.env ] && [ -f apps/cms-api/.env.example ]; then cp apps/cms-api/.env.example apps/cms-api/.env; fi
+
+api-check: api-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f apps/cms-api/justfile ]; then
+        cd apps/cms-api && UV_NO_SYNC=1 just check
+    else
+        echo "cms-api: вложенный justfile появится после PR #45; выполняется базовый прогон"
+        uv run --project apps/cms-api ruff check apps/cms-api
+        if [ -d apps/cms-api/tests ]; then
+            uv run --project apps/cms-api python -m pytest apps/cms-api/tests -q
+        else
+            echo "cms-api: тестов пока нет в main (PR #42)"
+        fi
+    fi
 
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
 check:
