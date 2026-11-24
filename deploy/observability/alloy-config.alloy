@@ -54,6 +54,18 @@ loki.process "docker" {
   forward_to = [loki.write.default.receiver]
 }
 
+// Backup-скрипт пишет структурированные события на хост (systemd timer).
+loki.source.file "backup" {
+  targets = [{
+    __path__    = "/var/log/sreda/backup*.jsonl"
+    job         = "backup"
+    component   = "backup"
+    environment = "production"
+  }]
+
+  forward_to = [loki.write.default.receiver]
+}
+
 loki.write "default" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"

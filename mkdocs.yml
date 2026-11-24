@@ -1,0 +1,76 @@
+site_name: Sreda Media
+site_description: "Документация медиа-клуба колледжа: продукт, архитектура, архитектурные решения и эксплуатация."
+site_url: https://sreda-media.github.io/sreda-media/
+docs_dir: docs
+repo_url: https://github.com/Sreda-Media/sreda-media
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: ru
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Светлая тема
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Тёмная тема
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+# Ссылки на файлы вне docs_dir (deploy/, scripts/, CONTRIBUTING.md) остаются
+# рабочими в репозитории, но MkDocs не может их резолвить: не делаем из них warning.
+validation:
+  links:
+    not_found: info
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Обзор: index.md
+  - Продукт:
+      - PRD: prd.md
+      - Архитектура: architecture.md
+      - Дорожная карта: roadmap.md
+  - Эксплуатация:
+      - Развёртывание: DEPLOYMENT.md
+      - Runbook: runbook.md
+      - Мониторинг: monitoring.md
+      - Локальная наблюдаемость: DEV-OBSERVABILITY.md
+      - Vercel preview: vercel-preview-research.md
+      - Передача DHR: dhr-transfer.md
+  - ADR:
+      - 0001 Статический сайт на Astro: adr/0001-static-site-astro.md
+      - 0002 Markdown и директивы: adr/0002-markdown-and-directives.md
+      - 0003 Git как источник правды: adr/0003-git-source-of-truth-editorial-flow.md
+      - 0004 Микро-CMS Django + React: adr/0004-micro-cms-django-react.md
+      - 0005 Наблюдаемость и GlitchTip: adr/0005-observability-glitchtip.md
+      - 0006 Хостинг (черновик): adr/0006-hosting-draft.md
+      - 0007 Монорепозиторий: adr/0007-monorepo.md
+      - 0008 БД как источник правды: adr/0008-db-source-of-truth.md
+      - 0009 Аутентификация: adr/0009-authentication.md
+      - 0010 Модель контента: adr/0010-content-model.md
+      - 0011 Архитектура и границы: adr/0011-application-architecture-and-boundaries.md
+      - 0012 Надёжные внешние эффекты: adr/0012-reliable-external-effects.md
+      - 0013 Фоновые задачи: adr/0013-background-runtime.md
+      - 0014 Контракт контента: adr/0014-cross-stack-content-contract.md
+      - 0015 Runtime и операции: adr/0015-runtime-and-data-operations.md
+      - Шаблон ADR: adr-template.md
+  - Спецификации:
+      - Рубрики сайта: specs/site-04-rubrics.md
+      - Шаблон спецификации: specs/_template.md

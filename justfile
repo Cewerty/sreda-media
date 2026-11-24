@@ -11,7 +11,12 @@ install:
     pnpm install --frozen-lockfile
     uv sync --frozen
 
-api-check:
+# Локальный .env для CMS API (по CONTRIBUTING.md).
+api-env: install
+    if [ ! -f apps/cms-api/.env ] && [ -f apps/cms-api/.env.example ]; then cp apps/cms-api/.env.example apps/cms-api/.env; fi
+
+# Авторитетная версия Ильи из PR #45: полный вложенный gate.
+api-check: api-env
     cd apps/cms-api && uv sync --frozen && UV_NO_SYNC=1 just check
 
 # Документация, ADR, ссылки, CODEOWNERS, шаблонные секреты и контракт логов.
@@ -82,3 +87,7 @@ backup-obs:
 # Деструктивно — требуется CONFIRM=1 (см. docs/runbook.md).
 restore-obs prefix:
     ./scripts/restore-observability.sh "{{prefix}}"
+
+# Безопасная репетиция backup/restore во временном каталоге (DRY_RUN=1).
+backup-drill:
+    ./scripts/backup-drill.sh

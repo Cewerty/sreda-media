@@ -74,8 +74,11 @@ Grafana provisioning лежит строго в подпапках
 `deploy/observability/grafana-provisioning/{datasources,dashboards,alerting}/`.
 Правила в `alerting/rules.yml` и контакт `alerting/contact-points.yml` подготовлены,
 но все правила имеют label `enabled="false"` и не попадают под маршрут из
-`alerting/policies.yml`, поэтому уведомлений нет. Включение алертов — после PR #16
-и Q-1: заменить label на `enabled="true"` и задать `GRAFANA_TELEGRAM_CHAT_ID`
+`alerting/policies.yml`, поэтому уведомлений нет. Подготовленные правила: рост
+ошибок в stdout, отказ health/readiness, откат выкладки, ошибки Grafana, ошибки
+приёма в Loki, провал backup и мало свободного места на диске (последнее требует
+профиля `logs` с node_exporter). Включение алертов — после PR #16 и Q-1: заменить
+label на `enabled="true"` и задать `GRAFANA_TELEGRAM_CHAT_ID`
 и `GRAFANA_TELEGRAM_BOT_TOKEN` переменными окружения на VPS. Provisioned-ресурсы
 редактируются только в этих файлах, не в UI Grafana.
 
@@ -90,6 +93,31 @@ BACKUP_DIR=/srv/sreda/backups just backup-obs
 ```
 
 Скрипт `scripts/backup-observability.sh` снимает `pg_dump` (профиль `sql` должен быть поднят) и tar volume Grafana, проверяет сжатие и пишет манифест SHA256 с UTC-меткой. Устаревшие копии удаляются по `RETENTION_DAYS` (по умолчанию 14 дней). Loki не копируется: логи имеют собственный retention 30 дней, восстановление логов не предусмотрено. Рецепты `backup-obs`/`restore-obs` намеренно не входят в `just verify`.
+
+Бэкап пишет структурированные события `backup_started`, `backup_finished`, `backup_failed` в `SREDA_BACKUP_LOG` (по умолчанию `/var/log/sreda/backup.jsonl`). Alloy подхватывает этот файл через `loki.source.file "backup"`, поэтому ошибки бэкапа видны в Loki и по ним подготовлено правило `sreda-backup-failed` (пока отключено).
+
+Безопасная репетиция без PostgreSQL и внешних путей:
+
+```bash
+uvx --from rust-just just backup-drill
+```
+
+Команда работает в `mktemp -d` и только в `DRY_RUN=1`: проверяет оба скрипта и механизм SHA256-манифеста, ничего не удаляя и не перезаписывая.
+
+Регулярный запуск на VPS — пример unit-файлов в `deploy/observability/backup.service` и `backup.timer`:
+
+```bash
+sudo install -m 0644 deploy/observability/backup.service /etc/systemd/system/
+sudo install -m 0644 deploy/observability/backup.timer /etc/systemd/system/
+sudo install -d -m 0700 /etc/sreda
+# Заполнить /etc/sreda/observability-backup.env: BACKUP_DIR, POSTGRES_OBSERVABILITY_PASSWORD, OBS_COMPOSE_FILE
+sudo systemctl daemon-reload
+sudo systemctl enable --now backup.timer
+```
+
+Альтернатива через cron: `0 3 * * * BACKUP_DIR=/srv/sreda/backups /srv/sreda/scripts/backup-observability.sh`.
+
+Для локальной проверки контура без конфликта портов используйте [DEV-OBSERVABILITY.md](DEV-OBSERVABILITY.md).
 
 Восстановление по UTC-метке из имени файла:
 

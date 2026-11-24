@@ -138,3 +138,175 @@ groups:
           severity: critical
           component: observability
           enabled: "false"
+
+      - uid: sreda-grafana-errors
+        title: Ошибки в логах Grafana
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({component="grafana"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Grafana пишет ошибки в логи
+          description: Проверить доступность Loki и состояние контейнера Grafana.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-loki-errors
+        title: Ошибки приёма логов в Loki
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({component="loki"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Loki сообщает об ошибках записи
+          description: Проверить диск, retention и доступность хранилища.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-backup-failed
+        title: Резервное копирование не удалось
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({job="backup"} |= "backup_failed" [10m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: Очередной backup завершился ошибкой
+          description: Проверить backup.jsonl, свободное место и доступ к PostgreSQL.
+        labels:
+          severity: critical
+          component: backup
+          enabled: "false"
+
+      - uid: sreda-disk-low
+        title: Мало свободного места на диске
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} < 0.1
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Свободно менее 10% корневого раздела
+          description: Включить профиль logs и проверить node_exporter на VPS.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"

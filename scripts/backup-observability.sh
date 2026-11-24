@@ -14,8 +14,20 @@ TS="$(date -u +%Y%m%dT%H%M%SZ)"
 log() { printf '[backup] %s\n' "$*"; }
 fail() { printf '[backup] ОШИБКА: %s\n' "$*" >&2; exit 1; }
 
+# Структурированные события для Alloy -> Loki. Ничего не мешает basic-стеку:
+# файл опциональный, права и каталог задаются окружением на VPS.
+BACKUP_LOG="${SREDA_BACKUP_LOG:-/var/log/sreda/backup.jsonl}"
+emit() {
+    [ "$DRY_RUN" = "1" ] && return 0
+    mkdir -p "$(dirname "$BACKUP_LOG")" 2>/dev/null || return 0
+    printf '{"component":"backup","environment":"production","event":"%s","outcome":"%s","release":"%s","timestamp":"%s"}\n' \
+        "$1" "$2" "$TS" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$BACKUP_LOG" 2>/dev/null || true
+}
+trap 'emit backup_failed failure' ERR
+
 command -v docker >/dev/null 2>&1 || fail "docker не найден"
 [ -f "$COMPOSE_FILE" ] || fail "compose-файл не найден: $COMPOSE_FILE"
+emit backup_started running
 
 if [ "$DRY_RUN" != "1" ]; then
     install -d -m 0700 "$BACKUP_DIR"
@@ -62,4 +74,5 @@ find "$BACKUP_DIR" -maxdepth 1 -type f \
     \( -name '*-observability.sql.gz' -o -name '*-grafana.tar.gz' -o -name '*-manifest.sha256' \) \
     -mtime "+${RETENTION_DAYS}" -delete
 
+emit backup_finished success
 log "готово: $(basename "$SQL_FILE"), $(basename "$GRAFANA_FILE"), $(basename "$MANIFEST")"

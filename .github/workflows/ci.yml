@@ -147,6 +147,12 @@ jobs:
     if: needs.changes.outputs.site_needed == 'true'
     uses: ./.github/workflows/site-build.yml # zizmor: ignore[self-repository]
 
+  # Аудит зависимостей и SBOM не входит в needs агрегатора ci,
+  # поэтому его результат не блокирует слияние (только обязательный статус ci).
+  supply-chain:
+    name: Supply chain (не блокирует)
+    uses: ./.github/workflows/supply-chain.yml # zizmor: ignore[self-repository]
+
   ci:
     name: ci
     if: always()
