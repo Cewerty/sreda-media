@@ -8,8 +8,8 @@ set windows-shell := ["cmd.exe", "/c"]
 
 default: check
 
-# --- Проходящий набор. Это и есть команда для CI Кости прямо сейчас. ---
-check: lint types django tests
+# --- Quality gate для локального запуска и GitHub Actions ---
+check: lint types django deploy-strict tests
 
 ci: check
 
@@ -27,23 +27,25 @@ types:
 django:
     uv run manage.py check
     uv run manage.py makemigrations --check --dry-run
-    uv run python config_check.py
 
 hooks:
     uv run lefthook install
 
+# --- Тесты: входят в check, не заглушка ---
 tests:
     uv run pytest -q
 
-# --- Отдельные проверки ---
+# --- Production-профиль: отдельный процесс со своим env, без реальных секретов ---
+# .env.deploy-check закоммичен и содержит только синтетические значения.
+# check --deploy не открывает соединений, поэтому боевые секреты не нужны.
+deploy-strict:
+    uv run --env-file .env.deploy-check manage.py check --deploy --fail-level WARNING
+
+# --- Не включены в ci: ждут своих задач, чтобы не ронять пайплайн ---
+
 # #25: границы модулей. tach.toml пока пуст.
 boundaries:
     uv run tach check
-
-# #26/#14: сейчас падает на security.W* и mail.E001 (console email backend).
-# Включать после перевода DEBUG/ALLOWED_HOSTS/SECRET_KEY/MAILERS на env.
-deploy-strict:
-    uv run manage.py check --deploy --fail-level WARNING
 
 # Требует DJANGO_QUALITY_GATE=1 в окружении (подключает dev-app линтера).
 migrations-lint:

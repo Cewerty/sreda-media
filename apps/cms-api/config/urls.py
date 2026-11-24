@@ -4,6 +4,7 @@ from dmr.openapi import OpenAPIConfig, build_schema
 from dmr.openapi.views import OpenAPIJsonView, SwaggerView
 from dmr.routing import Router, path
 
+from apps.core.health.views import HealthController, ReadyController
 from apps.users.views import UserCollectionController, UserDetailController
 
 # API-роутер версии v1
@@ -34,4 +35,8 @@ urlpatterns = [
     # Документация OpenAPI и Swagger UI
     django_path("docs/openapi.json/", OpenAPIJsonView.as_view(schema), name="openapi"),
     django_path("docs/swagger/", SwaggerView.as_view(schema), name="swagger"),
+    # Эксплуатационные пробы (NFR-OPS-04, ADR 0006 §1, ADR 0015 §4).
+    # В корне, вне api_v1_router и вне OpenAPI: это не контракт контента.
+    path("healthz", HealthController.as_view(), name="healthz"),
+    path("readyz", ReadyController.as_view(), name="readyz"),
 ]

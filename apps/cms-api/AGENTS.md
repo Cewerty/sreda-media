@@ -44,6 +44,12 @@
 
 ## Границы и структура
 
+- Health/readiness (`apps/core/health/`) — анонимные DMR-пробы в корне, вне
+  `/api/` и OpenAPI; `/healthz` без Dishka-зависимостей и без БД. Спецификация —
+  [`docs/specs/ops-04-health-readiness.md`](../../docs/specs/ops-04-health-readiness.md).
+  `HealthProvider` регистрируется только в `apps/core/apps.py`: после PR #42
+  это единственный composition root, `config/asgi.py` контейнер не собирает.
+
 - `apps/cms-api` владеет состоянием CMS и серверными правилами предметной области.
   `apps/cms-web` (React) общается только по HTTP-контракту DMR/OpenAPI.
 - Слои (ADR 0011): тонкий transport (DMR controller) → application service
@@ -84,20 +90,19 @@ uv run manage.py runserver
 
 ```bash
 just            # = just check
-just check      # проходящий набор: ruff, pyright, Django, config_check
-just ci         # алиас check — именно это вызывает Костя в CI
+just check      # ruff, pyright, Django, deploy-strict, pytest
+just ci         # алиас check, вызывается в GitHub Actions
 just lint       # только ruff check --no-fix + ruff format --check
 just types      # pyright
 just tests      # pytest, в том числе контракт #27
-just django     # check, makemigrations --check, config_check.py
+just django     # check, makemigrations --check
+just deploy-strict # check --deploy --fail-level WARNING с .env.deploy-check
 just format     # ruff format . (вручную, перед коммитом)
 just hooks      # uv run lefthook install, один раз
 ```
 
 Рецепты **вне `check`**, чтобы не ронять пайплайн до своих задач:
 `just boundaries` (#25, `tach.toml` пуст),
-`just deploy-strict` (#26/#14, `check --deploy --fail-level WARNING` — сейчас
-падает на `security.W*` и `mail.E001`, ждёт env-конфигурации),
 `just migrations-lint` (нужен `DJANGO_QUALITY_GATE=1`),
 `just django-upgrade` (кодмод, переписывает файлы — только вручную),
 `just contract-baseline` / `just contract` (сверка OpenAPI без генерации
@@ -120,9 +125,8 @@ TS-клиента). Костя переносит рецепты в общий j
   `per-file-ignores`; тесты больше не исключаются из линта целиком.
 - Не подавлять проверки по существу через `# noqa` (как в `apps/cms-web/AGENTS.md`):
   `SECRET_KEY` читается из env, а не закрыт `S105`.
-- `DMR_SETTINGS` использует `Settings` enum. Тихое отключение
-  `validate_responses` / `semantic_responses` и пустые parsers/renderers ловит
-  `config_check.py`.
+- `DMR_SETTINGS` использует `Settings` enum. Typed config на bootstrap запрещает
+  отключение `validate_responses` / `semantic_responses` и пустые parsers/renderers.
 - `django-upgrade` — кодмод, переписывает файлы, поэтому в гейт не включён:
   запускать вручную `uv run django-upgrade --target-version 6.1 apps config`.
 
@@ -136,5 +140,6 @@ TS-клиента). Костя переносит рецепты в общий j
   `--contract` пока только сверяет схему с `openapi.json`.
 - `build_404/500/csrf_handler` остаются отдельной работой. HTTP-логи и
   runtime-конфигурация описаны в [спецификации #27](../../docs/specs/cms-runtime-config-and-logging.md).
-- `/healthz` и `/readyz` — #28, PostgreSQL — #26/#14.
+- `/healthz` и `/readyz` реализованы (#28); PostgreSQL, `connect_timeout` /
+  `statement_timeout` и prod-профиль конфигурации — #41/#26/#14.
 - Явные зависимости `django`/`daphne` добавлены; `uv.lock` пересобран.
