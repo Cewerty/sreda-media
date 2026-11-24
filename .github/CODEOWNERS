@@ -14,6 +14,9 @@
 /.github/workflows/ @Zisvit
 /docs/DEPLOYMENT.md @Zisvit
 /docs/runbook.md @Zisvit
+/docs/DEV-OBSERVABILITY.md @Zisvit
+/deploy/ @Zisvit
+/scripts/ @Zisvit
 /.github/CODEOWNERS @Cewerty
 
 # Конфигурация монорепозитория и lock-файлы (ADR 0007): изменения проверяют

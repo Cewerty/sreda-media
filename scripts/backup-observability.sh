@@ -36,6 +36,7 @@ fi
 SQL_FILE="$BACKUP_DIR/${TS}-observability.sql.gz"
 GRAFANA_FILE="$BACKUP_DIR/${TS}-grafana.tar.gz"
 MANIFEST="$BACKUP_DIR/${TS}-manifest.sha256"
+AGE_RECIPIENT="${SREDA_BACKUP_AGE_RECIPIENT:-}"
 
 # PostgreSQL уже включён в профиле sql; если сервис не поднят, шаг честно падает.
 if [ "$DRY_RUN" = "1" ]; then
@@ -59,6 +60,19 @@ else
     gzip -t "$GRAFANA_FILE" || fail "повреждён архив Grafana"
 fi
 
+# Опциональное шифрование: если задан получатель age, открытые дампы не остаются на диске.
+if [ -n "$AGE_RECIPIENT" ]; then
+    command -v age >/dev/null 2>&1 || fail "age не найден, но задан SREDA_BACKUP_AGE_RECIPIENT"
+    log "шифрование age включено"
+    if [ "$DRY_RUN" != "1" ]; then
+        age -r "$AGE_RECIPIENT" -o "${SQL_FILE}.age" "$SQL_FILE"
+        age -r "$AGE_RECIPIENT" -o "${GRAFANA_FILE}.age" "$GRAFANA_FILE"
+        rm -f "$SQL_FILE" "$GRAFANA_FILE"
+    fi
+    SQL_FILE="${SQL_FILE}.age"
+    GRAFANA_FILE="${GRAFANA_FILE}.age"
+fi
+
 if [ "$DRY_RUN" = "1" ]; then
     log "dry-run: каталог $BACKUP_DIR, retention ${RETENTION_DAYS} дней"
     log "dry-run: манифест $MANIFEST"
@@ -71,7 +85,9 @@ fi
 )
 
 find "$BACKUP_DIR" -maxdepth 1 -type f \
-    \( -name '*-observability.sql.gz' -o -name '*-grafana.tar.gz' -o -name '*-manifest.sha256' \) \
+    \( -name '*-observability.sql.gz' -o -name '*-observability.sql.gz.age' \
+       -o -name '*-grafana.tar.gz' -o -name '*-grafana.tar.gz.age' \
+       -o -name '*-manifest.sha256' \) \
     -mtime "+${RETENTION_DAYS}" -delete
 
 emit backup_finished success

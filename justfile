@@ -94,3 +94,33 @@ restore-obs prefix:
 # Безопасная репетиция backup/restore во временном каталоге (DRY_RUN=1).
 backup-drill:
     ./scripts/backup-drill.sh
+
+# Необязательная фиксация инструментов: mise подхватит версии из mise.toml,
+# если он установлен; иначе просто печатает инструкцию. Никого не заставляем.
+bootstrap:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v mise >/dev/null 2>&1; then
+        mise install
+    else
+        echo "mise не найден: инструменты зафиксированы в mise.toml, установите mise или используйте свои версии"
+    fi
+    pnpm install --frozen-lockfile
+    uv sync --frozen
+    echo "bootstrap: зависимости готовы"
+
+# Локальная проверка уже поднятого контура (только чтение, ничего не запускает).
+obs-health:
+    ./scripts/obs-health.sh
+
+# Репетиция алертов: статическая проверка + тестовая запись в Loki, если он поднят.
+alert-drill:
+    python3 scripts/alert-drill.py
+
+# Подготовка keyless-подписи артефакта; НЕ входит в verify и CI.
+sign-artifact path:
+    ./scripts/sign-artifact.sh "{{path}}"
+
+# Локальный просмотр документации MkDocs (публикация всё ещё под ENABLE_DOCS_PAGES).
+docs-serve:
+    uvx --from mkdocs-material==9.8.2 mkdocs serve
