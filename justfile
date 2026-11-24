@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -56,6 +56,26 @@ check-logs:
 check-alerts:
     uv run --with pyyaml==6.0.4 python scripts/check_alert_rules.py
 
+# Конфигурация Uptime Kuma как код: мониторы 200/404, Telegram, интервал >=30.
+check-uptime:
+    python3 scripts/check_uptime_config.py
+
+# Неблокирующий сбор coverage в coverage-reports/ с SHA256SUMS.
+coverage: install
+    bash scripts/collect_coverage.sh
+
+# Ежедневная проверка относительных ссылок в docs/.
+link-check:
+    python3 scripts/check_links.py
+
+# Локальный предпрогон перед коммитом: только чтение, хуки не ставит.
+pre-commit:
+    bash scripts/pre-commit.sh
+
+# Сверка подписи и хэша статического артефакта (не в verify/CI).
+verify-artifact path:
+    bash scripts/verify-artifact.sh "{{path}}"
+
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:
     uv run --project apps/cms-api ruff check apps/cms-api
@@ -94,9 +114,9 @@ test: install test-web
 test-web:
     pnpm --filter @sreda/cms-web test
 
-# Покрытие: пока заглушка, чтобы не создавать иллюзию полноценного прогона.
-cov: test
-    @echo "cov: отчёт по покрытию ещё не настроен (issue #26)"
+# Покрытие: реальный сбор через scripts/collect_coverage.sh, неблокирующе.
+cov: coverage
+    @echo "cov: отчёты собраны в coverage-reports/ (если плагины доступны)"
 
 # Валидация материалов и медиа перед сборкой (ADR 0014, issue #6).
 check-content:
