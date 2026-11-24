@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI.
-verify: check install lint types test build-web config-lint workflows-lint secrets build-site
+verify: check check-logs install lint types test build-web config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -14,6 +14,10 @@ install:
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
 check:
     python3 scripts/check.py
+
+# Контракт структурированных логов ADR 0005: обязательные поля и отсутствие PII.
+check-logs:
+    python3 scripts/check_log_schema.py
 
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:

@@ -1,0 +1,24 @@
+// ADR 0005: локальный сбор очищенных JSON-логов Caddy и передача в Loki.
+// Сервис не является синхронной зависимостью приложения: при падении Alloy
+// приложение продолжает работать, логи просто перестают попадать в хранилище.
+
+logging {
+  level = "info"
+}
+
+loki.source.file "caddy" {
+  targets = [{
+    __path__     = "/var/log/caddy/*.log"
+    job          = "caddy"
+    component    = "caddy"
+    environment  = "production"
+  }]
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

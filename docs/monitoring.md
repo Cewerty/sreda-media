@@ -7,8 +7,8 @@
 
 - **Uptime Kuma** — open source мониторинг доступности. Compose-файл:
   `deploy/uptime-kuma/docker-compose.yml`. Слушает только `127.0.0.1:3001`;
-  наружу публикуется через Caddy с HTTPS и basic auth ( адрес и пароль задаются
-  на VPS, в репозитории секретов нет ).
+  наружу публикуется через Caddy с HTTPS и basic auth (адрес и пароль задаются
+  на VPS, в репозитории секретов нет).
 - **Внешняя точка проверки** — сам Uptime Kuma на том же VPS. Если VPS недоступен
   целиком, монитор тоже молчит. Ограничение фиксируется здесь и в runbook:
   для независимой проверки нужен второй провайдер или внешний сервис; до его
@@ -44,8 +44,8 @@
 
 ## Ресурсы
 
--compose любого дополнительного сервиса добавляет потребление RAM/CPU; Kuma
- Leh lightweight (SQLite, без отдельной БД). Фактические цифры записать в runbook
+Каждый дополнительный compose-сервис добавляет потребление RAM/CPU; Kuma
+лёгкий (SQLite, без отдельной БД). Фактические цифры записать в runbook
  после пробного запуска на VPS. Бюджет инфраструктуры — ≤500 ₽/мес (PRD, NFR-COST-01).
 
 ## Что не входит в этап 0.1
@@ -53,3 +53,17 @@
 Grafana + Alloy + Loki, `/healthz` и `/readyz`, GlitchTip и резервное копирование
 PostgreSQL описаны в [runbook](runbook.md) как план этапов 0.2–0.4 и выполняются
 по мере появления CMS (issue #14).
+
+## Подготовленный стек (НЕ включён)
+
+Инфраструктура для этапа 0.2 уже подготовлена в репозитории:
+[deploy/observability/docker-compose.yml](../deploy/observability/docker-compose.yml)
+(Grafana, Loki, Alloy, Prometheus, node_exporter, PostgreSQL, GlitchTip),
+[схема SQL](../deploy/observability/schema.sql),
+[дашборд](../deploy/observability/grafana-dashboards/overview.json) и
+[проверка контракта логов](../scripts/check_log_schema.py). Решение и триггеры
+по Kafka зафиксированы в [ADR 0005](adr/0005-observability-glitchtip.md).
+
+Стек **не запущен**, мониторы на несуществующий адрес не созданы, уведомления
+не настроены. Включение возможно только после PR #16 (`apps/site` в main) и Q-1
+(тестовый адрес/DNS). Личный сервер автора (`serv`) для этого не используется.
