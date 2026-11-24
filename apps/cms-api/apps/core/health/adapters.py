@@ -16,9 +16,9 @@ from django.db import connections
 from apps.core.health.ports import DependencyProbe
 from apps.core.health.schemas import ReadinessCheck
 
-#: Бюджет по умолчанию. Таймаут уровня драйвера (`connect_timeout`,
-#: `statement_timeout`) и это значение должны прийти из typed config в #41
-#: (issue OPEN): `AppSettings` из PR #42 пока не содержит полей БД.
+#: Бюджет по умолчанию. Таймауты уровня драйвера (`connect_timeout`,
+#: `statement_timeout`) и общий бюджет `wait_for` задаются в `AppSettings`
+#: (#41): `config/settings.py` -> `OPTIONS`, `health/di.py` -> READINESS_TIMEOUT_SECONDS.
 #: См. Q2 спецификации.
 DEFAULT_TIMEOUT_SECONDS: Final[float] = 1.0
 

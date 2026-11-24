@@ -18,9 +18,9 @@ import pytest
 from django.db import OperationalError
 from django.db.backends.base.base import BaseDatabaseWrapper
 
-from apps.core.health import di
 from apps.core.health.adapters import DatabaseProbe
 from config import urls
+from config.runtime import get_settings
 
 pytestmark = pytest.mark.anyio
 
@@ -82,7 +82,7 @@ async def test_ac3_readyz_db_failure(dmr_async_client, db, monkeypatch):
 
 async def test_ac4_readyz_timeout(dmr_async_client, db, monkeypatch):
     """AC-4: зависшая зависимость не превращается в зависший запрос."""
-    monkeypatch.setattr(di, "READINESS_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setitem(vars(get_settings()), "readiness_timeout_seconds", 0.01)
 
     def _slow(self):
         time.sleep(0.5)

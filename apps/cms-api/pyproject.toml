@@ -14,6 +14,7 @@ dependencies = [
     "uvicorn>=0.54.0",
     "whitenoise>=6.12.0",
     "pydantic-settings>=2.16.0",
+    "psycopg[binary]>=3.2",
     "structlog>=26.1.0",
 ]
 
@@ -145,7 +146,6 @@ ignore = [
 "apps/**/migrations/**" = ["D101", "D102"]
 "tests/**" = ["D", "S101", "S105", "S106", "ANN", "PLR2004"]
 "**/conftest.py" = ["D", "S101", "S105", "S106", "ANN", "PLR2004"]
-"config_check.py" = ["D101", "D102", "S101", "PLR0912", "C901"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

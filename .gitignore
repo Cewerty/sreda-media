@@ -26,6 +26,7 @@ apps/cms-api/openapi.json.tmp
 .env
 .env.*
 !.env.example
+!apps/cms-api/.env.deploy-check
 
 # Редактор и ОС
 .vscode/

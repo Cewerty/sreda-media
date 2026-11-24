@@ -1,3 +1,7 @@
+"""Django settings `cms-api` на основе проверенного runtime config (ADR 0015 §2)."""
+
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
@@ -17,11 +21,12 @@ if str(BASE_DIR) not in sys.path:
 
 
 _runtime = get_settings()
+
 DEBUG = _runtime.debug
 ALLOWED_HOSTS = list(_runtime.allowed_hosts)
 SECRET_KEY = _runtime.secret_key.get_secret_value()
 LOGGING = django_logging(_runtime.log_level)
-del _runtime
+
 
 # Application definition
 
@@ -42,8 +47,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 ]
 
-# Dev-приложение для `manage.py lintmigrations` подключается только на полном
-# прогоне quality_gate.py. В продовом образе его нет, поэтому settings не ломается.
+# Dev-приложение для `manage.py lintmigrations` подключается только из
+# `just migrations-lint`. В продовом образе его нет, поэтому settings не ломается.
 if os.environ.get("DJANGO_QUALITY_GATE") == "1":
     INSTALLED_APPS.append("django_migration_linter")
 
@@ -86,12 +91,24 @@ TEMPLATES = [
 ]
 
 
-# Database
+# Database — только PostgreSQL (ADR 0015 §3). `connect_timeout` в секундах,
+# `statement_timeout` передаётся libpq через `options` в миллисекундах.
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": _runtime.postgres_db,
+        "USER": _runtime.postgres_user,
+        "PASSWORD": _runtime.postgres_password.get_secret_value(),
+        "HOST": _runtime.postgres_host,
+        "PORT": _runtime.postgres_port,
+        # Без явного TIME_ZONE Django ставит в соединении UTC и падает на
+        # окружениях без tzdata. Значение идёт из typed config.
+        "TIME_ZONE": _runtime.time_zone,
+        "OPTIONS": {
+            "connect_timeout": _runtime.connect_timeout,
+            "options": f"-c statement_timeout={_runtime.statement_timeout}",
+        },
+    },
 }
 
 
@@ -117,7 +134,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = "ru-ru"
-TIME_ZONE = "UTC"
+TIME_ZONE = _runtime.time_zone
 USE_I18N = True
 USE_TZ = True
 
@@ -140,17 +157,45 @@ STORAGES = {
 }
 
 
-# Конфигурация DMR (глобальные настройки API). Ключи — Settings enum, не строки:
-# dmr валидирует их при импорте, а config_check.py ловит тихое отключение.
+# Конфигурация DMR: ключи — Settings enum, не строки. Typed config (#41)
+# запрещает тихое отключение validate_responses / semantic_responses.
 DMR_SETTINGS = {
-    # Строгая валидация исходящих ответов на соответствие объявленным типам и статус-кодам.
-    Settings.validate_responses: True,
+    Settings.validate_responses: _runtime.dmr_validate_responses,
+    Settings.semantic_responses: _runtime.dmr_semantic_responses,
+    Settings.parsers: _runtime.dmr_parsers,
+    Settings.renderers: _runtime.dmr_renderers,
 }
 
 
-# Email
+# Email: SMTP и в dev, и в prod — console/locmem дают mail.E001 в check --deploy.
 MAILERS = {
     "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        "BACKEND": _runtime.email_backend,
+        "OPTIONS": {
+            "host": _runtime.email_host,
+            "port": _runtime.email_port,
+            "username": _runtime.email_host_user,
+            "password": _runtime.email_host_password.get_secret_value(),
+            "use_tls": _runtime.email_use_tls,
+            "timeout": _runtime.email_timeout,
+        },
     },
 }
+DEFAULT_FROM_EMAIL = _runtime.default_from_email
+
+
+# Production-профиль: include-настройки включаются только здесь, иначе
+# SECURE_SSL_REDIRECT и secure-cookie сломают локальные тесты и runserver.
+if _runtime.environment == "production":
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = "DENY"
+
+del _runtime
