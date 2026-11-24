@@ -1,0 +1,194 @@
+name: CI
+
+# Единственный обязательный статус для main (issue #2, ADR 0007).
+# Имя job `ci` совпадает с context в ruleset main-core-protection.
+# Независимые проверки идут параллельно, связанные — через needs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Ручной прогон для проверки самих проверок (запрос ревью на реальный tests job).
+  workflow_dispatch:
+    inputs:
+      force_tests:
+        description: 'Прогнать проверки CMS Web, CMS API и Astro независимо от изменённых путей'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Для PR отменяем только устаревшие прогоны того же PR.
+# Для main каждый коммит получает отдельную группу: запуски не теряются.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-main-{0}', github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Затронутые компоненты
+    runs-on: ubuntu-latest
+    outputs:
+      site_needed: ${{ steps.detect.outputs.site_needed }}
+      tests_needed: ${{ steps.detect.outputs.tests_needed }}
+      cms_api_needed: ${{ steps.detect.outputs.cms_api_needed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect components
+        id: detect
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCE_TESTS: ${{ inputs.force_tests }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE:-}" ] || [ "${#BASE}" -ne 40 ]; then
+            BASE=$(git rev-parse HEAD~1)
+          fi
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "Не удалось найти базовый коммит $BASE" >&2
+            exit 1
+          fi
+          # Без `|| true`: ошибка diff обязана провалить job и весь статус ci.
+          git diff --name-only "$BASE" HEAD > changed.txt
+          cat changed.txt
+
+          site_needed=false
+          tests_needed=false
+          cms_api_needed=false
+          # ADR 0007: общие пакеты и контракт потребляются и site, и cms-web —
+          # проверяются все существующие потребители, а не только один.
+          shared='^packages/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$'
+          if [ -d apps/site ] && grep -Eq "^apps/site/|$shared" changed.txt; then
+            site_needed=true
+          fi
+          if grep -Eq "^apps/cms-web/|$shared" changed.txt; then
+            tests_needed=true
+          fi
+          # Правки самих проверок и общих зависимостей затрагивают всех потребителей.
+          if grep -Eq '^\.github/workflows/|^\.github/actions/|^justfile$|^scripts/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+            site_needed=true
+            tests_needed=true
+          fi
+          # Ручной прогон для приложения реальных логов тестов без фиктивных правок.
+          if [ "${FORCE_TESTS:-false}" = "true" ]; then
+            site_needed=true
+            tests_needed=true
+          fi
+          # #41 приносит production-профиль. Проверяем и BASE, чтобы удаление
+          # профиля из уже подключённого компонента приводило к ошибке gate.
+          if [ -f apps/cms-api/.env.deploy-check ] || git cat-file -e "$BASE:apps/cms-api/.env.deploy-check" 2>/dev/null; then
+            if [ "${FORCE_TESTS:-false}" = "true" ] ||
+              grep -Eq '^apps/cms-api/|^\.github/(workflows/(ci|cms-api)\.yml$|actions/)|^\.python-version$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+              cms_api_needed=true
+            fi
+          fi
+          {
+            echo "site_needed=$site_needed"
+            echo "tests_needed=$tests_needed"
+            echo "cms_api_needed=$cms_api_needed"
+          } >> "$GITHUB_OUTPUT"
+
+  workflows-lint:
+    name: Workflows lint
+    uses: ./.github/workflows/workflows-lint.yml # zizmor: ignore[self-repository]
+
+  conventions:
+    name: Conventions
+    uses: ./.github/workflows/conventions.yml # zizmor: ignore[self-repository]
+
+  config-lint:
+    name: Config lint
+    uses: ./.github/workflows/config-lint.yml # zizmor: ignore[self-repository]
+
+  secrets:
+    name: Secrets
+    uses: ./.github/workflows/secrets.yml # zizmor: ignore[self-repository]
+
+  tests:
+    name: CMS Web
+    needs: changes
+    if: needs.changes.outputs.tests_needed == 'true'
+    uses: ./.github/workflows/tests.yml # zizmor: ignore[self-repository]
+
+  cms-api:
+    name: CMS API
+    needs: changes
+    if: needs.changes.outputs.cms_api_needed == 'true'
+    uses: ./.github/workflows/cms-api.yml # zizmor: ignore[self-repository]
+
+  site-build:
+    name: Site build
+    needs: changes
+    if: needs.changes.outputs.site_needed == 'true'
+    uses: ./.github/workflows/site-build.yml # zizmor: ignore[self-repository]
+
+  ci:
+    name: ci
+    if: always()
+    needs: [changes, workflows-lint, conventions, config-lint, secrets, tests, cms-api, site-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверить результаты
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          WORKFLOWS_LINT: ${{ needs.workflows-lint.result }}
+          CONVENTIONS: ${{ needs.conventions.result }}
+          CONFIG_LINT: ${{ needs.config-lint.result }}
+          SECRETS: ${{ needs.secrets.result }}
+          TESTS: ${{ needs.tests.result }}
+          CMS_API: ${{ needs.cms-api.result }}
+          SITE: ${{ needs.site-build.result }}
+          TESTS_NEEDED: ${{ needs.changes.outputs.tests_needed }}
+          CMS_API_NEEDED: ${{ needs.changes.outputs.cms_api_needed }}
+          SITE_NEEDED: ${{ needs.changes.outputs.site_needed }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### CI"
+            echo ""
+            echo "| Проверка | Результат | Необходима |"
+            echo "| --- | --- | --- |"
+            echo "| changes | $CHANGES | always |"
+            echo "| workflows-lint | $WORKFLOWS_LINT | always |"
+            echo "| conventions | $CONVENTIONS | always |"
+            echo "| config-lint | $CONFIG_LINT | always |"
+            echo "| secrets | $SECRETS | always |"
+            echo "| tests | $TESTS | $TESTS_NEEDED |"
+            echo "| cms-api | $CMS_API | $CMS_API_NEEDED |"
+            echo "| site-build | $SITE | $SITE_NEEDED |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          failed=0
+          check_required() {
+            local name=$1 result=$2
+            if [ "$result" != success ]; then
+              echo "Обязательная проверка $name не завершилась успешно: $result" >&2
+              failed=1
+            fi
+          }
+          check_optional() {
+            local name=$1 result=$2 needed=$3
+            if [ "$result" = failure ] || [ "$result" = cancelled ]; then
+              echo "Проверка $name не прошла: $result" >&2
+              failed=1
+            elif [ "$result" = skipped ] && [ "$needed" = true ]; then
+              echo "Проверка $name была необходима, но пропущена" >&2
+              failed=1
+            fi
+          }
+          check_required changes "$CHANGES"
+          check_required workflows-lint "$WORKFLOWS_LINT"
+          check_required conventions "$CONVENTIONS"
+          check_required config-lint "$CONFIG_LINT"
+          check_required secrets "$SECRETS"
+          check_optional tests "$TESTS" "$TESTS_NEEDED"
+          check_optional cms-api "$CMS_API" "$CMS_API_NEEDED"
+          check_optional site-build "$SITE" "$SITE_NEEDED"
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+          echo "CI зелёный"
