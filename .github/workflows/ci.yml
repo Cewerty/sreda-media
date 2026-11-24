@@ -1,26 +1,36 @@
 name: CI
 
 # Единственный обязательный статус для main (issue #2, ADR 0007).
+# Имя job `ci` совпадает с context в ruleset main-core-protection.
 # Независимые проверки идут параллельно, связанные — через needs.
 on:
   push:
     branches: [main]
   pull_request:
+  # Ручной прогон для проверки самих проверок (запрос ревью на реальный tests job).
+  workflow_dispatch:
+    inputs:
+      force_tests:
+        description: 'Прогнать проверки CMS Web и Astro независимо от изменённых путей'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# Для PR отменяем только устаревшие прогоны того же PR.
+# Для main каждый коммит получает отдельную группу: запуски не теряются.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-main-{0}', github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
     name: Затронутые компоненты
     runs-on: ubuntu-latest
     outputs:
-      site: ${{ steps.detect.outputs.site }}
-      tests: ${{ steps.detect.outputs.tests }}
+      site_needed: ${{ steps.detect.outputs.site_needed }}
+      tests_needed: ${{ steps.detect.outputs.tests_needed }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -31,24 +41,40 @@ jobs:
         id: detect
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FORCE_TESTS: ${{ inputs.force_tests }}
         run: |
           set -euo pipefail
-          if [ -z "$BASE" ] || [ "${#BASE}" -ne 40 ]; then
+          if [ -z "${BASE:-}" ] || [ "${#BASE}" -ne 40 ]; then
             BASE=$(git rev-parse HEAD~1)
           fi
-          git diff --name-only "$BASE" HEAD > changed.txt || true
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "Не удалось найти базовый коммит $BASE" >&2
+            exit 1
+          fi
+          # Без `|| true`: ошибка diff обязана провалить job и весь статус ci.
+          git diff --name-only "$BASE" HEAD > changed.txt
           cat changed.txt
 
-          site=false
-          tests=false
-          if grep -Eq '^apps/site/|^packages/(remark-directives|article-styles)/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt && [ -d apps/site ]; then
-            site=true
+          site_needed=false
+          tests_needed=false
+          if [ -d apps/site ] && grep -Eq '^apps/site/|^packages/(remark-directives|article-styles)/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt; then
+            site_needed=true
           fi
           if grep -Eq '^apps/cms-web/|^apps/cms-api/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
-            tests=true
+            tests_needed=true
           fi
-          echo "site=$site" >> "$GITHUB_OUTPUT"
-          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          # Правки самих проверок и общих зависимостей затрагивают всех потребителей.
+          if grep -Eq '^\.github/workflows/|^\.github/actions/|^justfile$|^scripts/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+            site_needed=true
+            tests_needed=true
+          fi
+          # Ручной прогон для приложения реальных логов тестов без фиктивных правок.
+          if [ "${FORCE_TESTS:-false}" = "true" ]; then
+            site_needed=true
+            tests_needed=true
+          fi
+          echo "site_needed=$site_needed" >> "$GITHUB_OUTPUT"
+          echo "tests_needed=$tests_needed" >> "$GITHUB_OUTPUT"
 
   workflows-lint:
     name: Workflows lint
@@ -69,17 +95,17 @@ jobs:
   tests:
     name: Tests
     needs: changes
-    if: needs.changes.outputs.tests == 'true'
+    if: needs.changes.outputs.tests_needed == 'true'
     uses: ./.github/workflows/tests.yml # zizmor: ignore[self-repository]
 
   site-build:
     name: Site build
     needs: changes
-    if: needs.changes.outputs.site == 'true'
+    if: needs.changes.outputs.site_needed == 'true'
     uses: ./.github/workflows/site-build.yml # zizmor: ignore[self-repository]
 
   ci:
-    name: Итоговый статус
+    name: ci
     if: always()
     needs: [changes, workflows-lint, conventions, config-lint, secrets, tests, site-build]
     runs-on: ubuntu-latest
@@ -93,32 +119,50 @@ jobs:
           SECRETS: ${{ needs.secrets.result }}
           TESTS: ${{ needs.tests.result }}
           SITE: ${{ needs.site-build.result }}
+          TESTS_NEEDED: ${{ needs.changes.outputs.tests_needed }}
+          SITE_NEEDED: ${{ needs.changes.outputs.site_needed }}
         run: |
           set -euo pipefail
           {
             echo "### CI"
             echo ""
-            echo "| Проверка | Результат |"
-            echo "| --- | --- |"
-            echo "| changes | $CHANGES |"
-            echo "| workflows-lint | $WORKFLOWS_LINT |"
-            echo "| conventions | $CONVENTIONS |"
-            echo "| config-lint | $CONFIG_LINT |"
-            echo "| secrets | $SECRETS |"
-            echo "| tests | $TESTS |"
-            echo "| site-build | $SITE |"
+            echo "| Проверка | Результат | Необходима |"
+            echo "| --- | --- | --- |"
+            echo "| changes | $CHANGES | always |"
+            echo "| workflows-lint | $WORKFLOWS_LINT | always |"
+            echo "| conventions | $CONVENTIONS | always |"
+            echo "| config-lint | $CONFIG_LINT | always |"
+            echo "| secrets | $SECRETS | always |"
+            echo "| tests | $TESTS | $TESTS_NEEDED |"
+            echo "| site-build | $SITE | $SITE_NEEDED |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          for result in "$CHANGES" "$WORKFLOWS_LINT" "$CONVENTIONS" "$CONFIG_LINT" "$SECRETS"; do
+          failed=0
+          check_required() {
+            local name=$1 result=$2
             if [ "$result" != success ]; then
-              echo "Обязательная проверка не прошла: $result" >&2
-              exit 1
+              echo "Обязательная проверка $name не завершилась успешно: $result" >&2
+              failed=1
             fi
-          done
-          for result in "$TESTS" "$SITE"; do
+          }
+          check_optional() {
+            local name=$1 result=$2 needed=$3
             if [ "$result" = failure ] || [ "$result" = cancelled ]; then
-              echo "Проверка не прошла: $result" >&2
-              exit 1
+              echo "Проверка $name не прошла: $result" >&2
+              failed=1
+            elif [ "$result" = skipped ] && [ "$needed" = true ]; then
+              echo "Проверка $name была необходима, но пропущена" >&2
+              failed=1
             fi
-          done
+          }
+          check_required changes "$CHANGES"
+          check_required workflows-lint "$WORKFLOWS_LINT"
+          check_required conventions "$CONVENTIONS"
+          check_required config-lint "$CONFIG_LINT"
+          check_required secrets "$SECRETS"
+          check_optional tests "$TESTS" "$TESTS_NEEDED"
+          check_optional site-build "$SITE" "$SITE_NEEDED"
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
           echo "CI зелёный"

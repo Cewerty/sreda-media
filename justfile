@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI.
-verify: check lint config-lint workflows-lint secrets test
+verify: check lint config-lint workflows-lint secrets test build-site
     @echo "just verify: все проверки пройдены"
 
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
