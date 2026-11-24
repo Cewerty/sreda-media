@@ -1,0 +1,30 @@
+name: Lighthouse readiness (non-blocking)
+
+# Подготовка по ADR 0015 §7. Пока apps/site нет в main — честно пропускаем.
+on:
+  schedule:
+    - cron: '53 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Site quality probes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Build static site when available
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/site ]; then
+            echo "lighthouse: apps/site пока нет (PR #16) — пропуск"
+            exit 0
+          fi
+          echo "lighthouse: сайт появился, сборка и аудит требуют отдельного адреса"
+      - name: Lighthouse (pending address)
+        continue-on-error: true
+        run: echo "lighthouse/a11y/SEO включается после PR #16 и тестового адреса (Q-1)"

@@ -45,6 +45,15 @@ jobs:
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: false
+      - name: Trivy filesystem scan
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: '0'
+
       - name: Upload SBOM
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
