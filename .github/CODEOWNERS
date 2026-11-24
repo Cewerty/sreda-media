@@ -15,3 +15,14 @@
 /docs/DEPLOYMENT.md @Zisvit
 /docs/runbook.md @Zisvit
 /.github/CODEOWNERS @Cewerty
+
+# Конфигурация монорепозитория и lock-файлы (ADR 0007): изменения проверяют
+# затронутых потребителей, поэтому владельцы — DevOps и архитектор.
+/package.json @Zisvit @Cewerty
+/pnpm-workspace.yaml @Zisvit @Cewerty
+/pnpm-lock.yaml @Zisvit @Cewerty
+/pyproject.toml @Zisvit @Cewerty
+/uv.lock @Zisvit @Cewerty
+/.gitignore @Zisvit
+/.gitattributes @Zisvit
+/docs/dhr-transfer.md @Cewerty

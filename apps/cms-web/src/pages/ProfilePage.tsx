@@ -1,0 +1,145 @@
+import { Link, useOutletContext, useParams } from "react-router-dom";
+
+import type { AppOutletContext } from "@/components/layout/AppLayout";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { Button } from "@/components/ui/button";
+import {
+  CARD_INTERACTIVE_CLASS,
+  PLATE_INTERACTIVE_CLASS,
+} from "@/lib/surfaces";
+import type { InterviewEntry } from "@/types/candidateReport";
+
+export function ProfilePage() {
+  const { id = "c-01" } = useParams<{ id: string }>();
+  const { getCandidateById, getInterviewByCandidateId, getReportById } =
+    useOutletContext<AppOutletContext>();
+  const candidate = getCandidateById(id);
+  const interviewEntries = getInterviewByCandidateId(id);
+  const hasReport = Boolean(getReportById(id));
+
+  // Пустое состояние определяется фактическим наличием сущностей в локальных
+  // данных, а не query-параметрами (docs/decisions.md §12).
+  if (!candidate) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Профиль и материалы интервью</h2>
+        <EmptyState
+          title="Кандидат не найден"
+          description="Данные профиля недоступны. Проверьте, что кандидат был импортирован из 1С."
+        />
+      </div>
+    );
+  }
+
+  const candidateRows: Array<{ label: string; value: string }> = [
+    { label: "ФИО", value: candidate.fullName },
+    { label: "Предпочитаемое обращение", value: candidate.preferredName },
+    { label: "Курс", value: String(candidate.course) },
+    { label: "Группа", value: candidate.group },
+    { label: "Специальность", value: candidate.specialty },
+  ];
+
+  // «Не опрошен» — это этап воронки, а не отсутствие материалов интервью.
+  // Смешивание условий давало ложное сообщение «Отчёт станет доступен
+  // после проведения интервью» кандидату на этапе `in_review` без интервью.
+  const isUninterviewed = candidate.pipelineStage === "uninterviewed";
+  const hasInterviewMaterials = interviewEntries.length > 0;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold">Профиль и материалы интервью</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          В прототипе данные кандидата имитируют импорт из 1С и доступны только
+          для чтения.
+        </p>
+      </div>
+
+      <section
+        aria-labelledby="candidate-card-heading"
+        className={`rounded-2xl p-5 ${CARD_INTERACTIVE_CLASS}`}
+      >
+        <h3 id="candidate-card-heading" className="text-lg font-semibold">
+          Карточка кандидата
+        </h3>
+        <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+          {candidateRows.map((row) => (
+            <div key={row.label}>
+              <dt className="text-sm text-muted-foreground">{row.label}</dt>
+              <dd className="text-sm font-medium">
+                {row.value.trim().length > 0 ? (
+                  row.value
+                ) : (
+                  <span className="text-slate-400 dark:text-[#7A7A7A]">
+                    Не указано
+                  </span>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section
+        aria-labelledby="interview-heading"
+        className={`rounded-2xl p-5 ${CARD_INTERACTIVE_CLASS}`}
+      >
+        <h3 id="interview-heading" className="text-lg font-semibold">
+          Материалы интервью
+        </h3>
+        {interviewEntries.length === 0 ? (
+          <div className="mt-3">
+            <EmptyState
+              title="Материалы интервью отсутствуют"
+              description="По этому кандидату ещё нет записанных вопросов и ответов."
+            />
+          </div>
+        ) : (
+          <div className="mt-3 space-y-4">
+            {interviewEntries.map((entry: InterviewEntry) => (
+              <article
+                key={entry.id}
+                className={`rounded-xl p-4 ${PLATE_INTERACTIVE_CLASS}`}
+              >
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-[#E3E3E3]">
+                  {entry.question}
+                </h4>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">
+                  {entry.answer}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {isUninterviewed ? (
+        <div className="space-y-2">
+          <Button type="button" disabled>
+            Перейти к отчёту
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Отчёт станет доступен после проведения интервью.
+          </p>
+        </div>
+      ) : !hasReport ? (
+        <div className="space-y-2">
+          <Button type="button" disabled>
+            Перейти к отчёту
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            {hasInterviewMaterials
+              ? "Отчёт по этому кандидату ещё не создан."
+              : "Материалы интервью отсутствуют, поэтому отчёт ещё не создан."}
+          </p>
+        </div>
+      ) : (
+        <Button asChild>
+          <Link to={`/candidates/${candidate.id}/report`}>
+            Перейти к отчёту
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
+}
