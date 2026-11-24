@@ -59,10 +59,13 @@ jobs:
           site_needed=false
           tests_needed=false
           cms_api_needed=false
-          if [ -d apps/site ] && grep -Eq '^apps/site/|^packages/(remark-directives|article-styles)/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt; then
+          # ADR 0007: общие пакеты и контракт потребляются и site, и cms-web —
+          # проверяются все существующие потребители, а не только один.
+          shared='^packages/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$'
+          if [ -d apps/site ] && grep -Eq "^apps/site/|$shared" changed.txt; then
             site_needed=true
           fi
-          if grep -Eq '^apps/cms-web/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt; then
+          if grep -Eq "^apps/cms-web/|$shared" changed.txt; then
             tests_needed=true
           fi
           # Правки самих проверок и общих зависимостей затрагивают всех потребителей.

@@ -3,8 +3,13 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI.
-verify: check lint config-lint workflows-lint secrets test build-site
+verify: check install lint types test build-web config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
+
+# Зависимости чистого checkout (pnpm workspaces + uv workspace).
+install:
+    pnpm install --frozen-lockfile
+    uv sync --frozen
 
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
 check:
@@ -31,8 +36,17 @@ secrets:
     go install github.com/zricethezav/gitleaks/v8@v8.30.1
     "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner
 
+# Проверка типов CMS Web (DoD: linters + types, без записи в исходники).
+types: install
+    pnpm --filter @sreda/cms-web exec tsc -b --noEmit
+    pnpm --filter @sreda/cms-web test:types
+
+# Сборка CMS Web (DoD: сборка затронутого компонента).
+build-web: install
+    pnpm --filter @sreda/cms-web build
+
 # Тесты доступных компонентов.
-test: test-web
+test: install test-web
     # cms-api: тесты из PR #42 пока не в main (stacked PR на chore/27-cms-foundation-base).
     if [ -d apps/cms-api/tests ]; then uv run --project apps/cms-api python -m pytest apps/cms-api/tests -q; else echo "cms-api: тестов пока нет в main (PR #42)"; fi
 
