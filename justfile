@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime check-host-config docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -59,6 +59,10 @@ check-alerts:
 # Конфигурация Uptime Kuma как код: мониторы 200/404, Telegram, интервал >=30.
 check-uptime:
     python3 scripts/check_uptime_config.py
+
+# Хостовые шаблоны Caddy/Docker/journald как код.
+check-host-config:
+    python3 scripts/check_host_config.py
 
 # Неблокирующий сбор coverage в coverage-reports/ с SHA256SUMS.
 coverage: install
