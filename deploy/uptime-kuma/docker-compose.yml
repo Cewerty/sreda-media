@@ -1,0 +1,16 @@
+# Uptime Kuma для мониторинга витрины (issue #14, этап 0.1).
+# Секреты и токен Telegram задаются в UI после первого запуска, в репозитории их нет.
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: sreda-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+    environment:
+      TZ: Asia/Yekaterinburg
+
+volumes:
+  uptime-kuma-data:
