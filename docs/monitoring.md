@@ -68,8 +68,9 @@ access-логи Caddy и stdout/stderr всех контейнеров без с
 
 Никому из разработчиков не нужно запускать этот compose: приложение по-прежнему
 пишет JSON в stdout, без Kafka-клиентов и новых обязательных переменных. Контракт
-логов проверяется в CI через `just check` (зависимость от `check-logs`), поэтому
-новый обязательный статус не вводится. Prometheus, node_exporter, PostgreSQL и
+логов проверяется в CI отдельным path-aware job `log-schema` внутри того же
+обязательного статуса `ci` (локально — `just check-logs` в составе `just verify`),
+поэтому новый отдельный статус не вводится. Prometheus, node_exporter, PostgreSQL и
 GlitchTip остаются под `profiles` и включаются только по ресурсам VPS.
 
 В прод обязательно переопределить `GRAFANA_ADMIN_PASSWORD` и остальные секреты
