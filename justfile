@@ -15,9 +15,35 @@ install:
 api-env: install
     if [ ! -f apps/cms-api/.env ] && [ -f apps/cms-api/.env.example ]; then cp apps/cms-api/.env.example apps/cms-api/.env; fi
 
+# Локальный PostgreSQL 18 для verify: поднимается только вне CI и только если есть docker.
+api-db-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "${CI:-}" = "true" ]; then
+        echo "CI: PostgreSQL уже запущен сервисом, локальный контейнер не нужен"
+        exit 0
+    fi
+    if command -v docker >/dev/null 2>&1; then
+        docker compose -f deploy/dev/postgres.yml up -d --wait
+    else
+        echo "docker не найден: локальный PostgreSQL не поднят"
+    fi
+
+api-db-down:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v docker >/dev/null 2>&1; then
+        docker compose -f deploy/dev/postgres.yml down
+    fi
+
 # Авторитетная версия Ильи из PR #45: полный вложенный gate.
-api-check: api-env
-    cd apps/cms-api && uv sync --frozen && UV_NO_SYNC=1 just check
+# Локально используем поднятый контейнер на 55432, в CI — сервис на 5432.
+api-check: api-env api-db-up
+    #!/usr/bin/env bash
+    set -euo pipefail
+    port=5432
+    if [ "${CI:-}" != "true" ] && command -v docker >/dev/null 2>&1; then port=55432; fi
+    cd apps/cms-api && uv sync --frozen && POSTGRES_PORT="$port" UV_NO_SYNC=1 just check
 
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
 check:

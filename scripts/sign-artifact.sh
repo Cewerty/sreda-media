@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Подготовка подписи статического артефакта через cosign keyless (issue #7/#14).
-# НЕ вызывается в CI и НЕ входит в verify: нужен реальный адрес и OIDC.
+# В CI вызывается неблокирующим шагом site-build; в verify НЕ входит.
+# Без cosign или без OIDC шаг честно пропускает подпись, не ломая сборку.
 # Использование: scripts/sign-artifact.sh dist/
 set -euo pipefail
 

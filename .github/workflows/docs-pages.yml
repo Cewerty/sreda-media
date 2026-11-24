@@ -4,11 +4,26 @@ name: Docs (GitHub Pages)
 # Включить: задать repository variable ENABLE_DOCS_PAGES=true и запустить workflow вручную.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '23 3 * * *'
 
 permissions:
   contents: read
 
 jobs:
+  docs-check:
+    name: Репетиция MkDocs (без публикации)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Build docs strictly
+        run: uvx --from mkdocs-material==9.8.2 mkdocs build --strict --site-dir /tmp/sreda-mkdocs-check
+
   build:
     name: Сборка документации
     if: ${{ vars.ENABLE_DOCS_PAGES == 'true' }}

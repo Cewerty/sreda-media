@@ -52,6 +52,7 @@ nav:
       - Runbook: runbook.md
       - Мониторинг: monitoring.md
       - Локальная наблюдаемость: DEV-OBSERVABILITY.md
+      - Локальный PostgreSQL: DEV-API.md
       - Vercel preview: vercel-preview-research.md
       - Передача DHR: dhr-transfer.md
   - ADR:
