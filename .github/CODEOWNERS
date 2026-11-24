@@ -26,3 +26,5 @@
 /.gitignore @Zisvit
 /.gitattributes @Zisvit
 /docs/dhr-transfer.md @Cewerty
+/.agents/skills/ @Cewerty
+/AGENTS.md @Cewerty

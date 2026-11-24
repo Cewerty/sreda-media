@@ -47,6 +47,18 @@ uv run manage.py collectstatic --noinput
 Проверено в обоих режимах: `/admin/login/`, `/docs/swagger/`, `/docs/openapi.json/`
 и все их ассеты отвечают 200.
 
+## Агентские скиллы DMR
+
+В репозиторий добавлены официальные Agent Skills `django-modern-rest`, которые
+поставляются внутри самого пакета: `.agents/skills/` в корне (6 скиллов,
+34 файла, версия 0.16.0 из `uv.lock`). Основной — `$dmr` для написания и ревью
+DMR-кода. Происхождение, лицензия MIT, порядок обновления и нюанс с `--copy` на
+exFAT — в `.agents/skills/README.md`; правила применения с учётом наших ADR —
+в [`AGENTS.md`](AGENTS.md).
+
+Официальная установка: `uvx library-skills --all -y --copy --no-tool-skill`
+(из корня, после `uv sync --all-packages`).
+
 ## Что пока не сделано
 
 Это перенесённая основа, а не готовый CMS. Открыто и вынесено в отдельные задачи:

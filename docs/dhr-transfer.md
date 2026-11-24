@@ -39,7 +39,9 @@ ADR 0004 §12 (что берётся из DHR), ADR 0011 (границы CMS), A
 
 Новое в монорепозитории: корневые `package.json`, `pnpm-workspace.yaml`,
 `pyproject.toml` (uv workspace), `.gitignore`; `apps/cms-web/AGENTS.md`,
-`apps/cms-api/README.md`, этот файл.
+`apps/cms-api/AGENTS.md`, `apps/cms-api/README.md`, этот файл;
+`.agents/skills/` — официальные Agent Skills установленного
+`django-modern-rest==0.16.0` (не из донора, а из пакета, см. §5–6).
 
 ## 3. Что удалено
 
@@ -97,6 +99,11 @@ Biome, tsc и Vitest перенесены без изменений, как и �
   копий в репозитории нет.
 - Зависимости из npm/PyPI сохраняют свои лицензии; отдельной инвентаризации
   по каждой не требуется, так как всё приходит через пакетные менеджеры по lock-файлам.
+- Перенесённые в `.agents/skills/` официальные Agent Skills DMR — **MIT**,
+  © 2025 wemake-services (`License-Expression: MIT` в METADATA пакета). Текст
+  лицензии лежит рядом: `.agents/skills/LICENSE`. MIT совместим с GPL-3.0
+  монорепозитория. Содержимое скиллов не изменено (34/34 файла, сверка по
+  SHA-256; CRLF пакета нормализован в LF нашим `.gitattributes`).
 
 ## 6. Воспроизводимость и проверки
 
@@ -154,6 +161,18 @@ pnpm build:cms      # tsc -b && vite build
   поэтому в `pnpm-workspace.yaml` явно разрешены через `allowBuilds`
   (формат pnpm 12; `onlyBuiltDependencies` — формат pnpm 10).
 - `django` и `daphne` используются напрямую, но объявлены только транзитивно — #26.
+- Официальные Agent Skills DMR поставляются внутри пакета
+  (`.venv/Lib/site-packages/dmr/.agents/skills/`), а не в репозитории донора.
+  `uvx library-skills scan` из корня uv-workspace обнаружил все 6 скиллов
+  (`django-modern-rest 0.16.0`); установка —
+  `uvx library-skills --all -y --copy --no-tool-skill`. `--copy` вместо
+  симлинков нужен из-за exFAT (то же ограничение, что у pnpm выше). Скопированные
+  каталоги `library-skills` считает `hand-authored` и не обновляет сам, поэтому
+  `--check` не является контролем рассинхрона версий; порядок обновления после
+  апгрейда DMR зафиксирован в `.agents/skills/README.md`.
+- Claude Code не читает `.agents/`: для него официальный путь — плагин из
+  маркетплейса `wemake-services/django-modern-rest`, либо
+  `uvx library-skills --claude --copy`. Дублирующих копий в `.claude/` не создаём.
 
 ### Миграции: не сносить по привычке из Alembic
 
