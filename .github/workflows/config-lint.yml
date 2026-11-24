@@ -1,0 +1,24 @@
+name: Config lint
+
+# Переиспользуемый workflow: валидация JSON/TOML и структуры workflow.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  config-lint:
+    name: Конфигурация
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup just
+        uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3.1.0
+        with:
+          just-version: v1.59.0
+      - name: Validate configs
+        run: just config-lint

@@ -1,0 +1,124 @@
+name: CI
+
+# Единственный обязательный статус для main (issue #2, ADR 0007).
+# Независимые проверки идут параллельно, связанные — через needs.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Затронутые компоненты
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.detect.outputs.site }}
+      tests: ${{ steps.detect.outputs.tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect components
+        id: detect
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BASE" ] || [ "${#BASE}" -ne 40 ]; then
+            BASE=$(git rev-parse HEAD~1)
+          fi
+          git diff --name-only "$BASE" HEAD > changed.txt || true
+          cat changed.txt
+
+          site=false
+          tests=false
+          if grep -Eq '^apps/site/|^packages/(remark-directives|article-styles)/|^docs/adr/0014-cross-stack-content-contract\.md$|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$' changed.txt && [ -d apps/site ]; then
+            site=true
+          fi
+          if grep -Eq '^apps/cms-web/|^apps/cms-api/|^pnpm-lock\.yaml$|^pnpm-workspace\.yaml$|^package\.json$|^pyproject\.toml$|^uv\.lock$' changed.txt; then
+            tests=true
+          fi
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+
+  workflows-lint:
+    name: Workflows lint
+    uses: ./.github/workflows/workflows-lint.yml # zizmor: ignore[self-repository]
+
+  conventions:
+    name: Conventions
+    uses: ./.github/workflows/conventions.yml # zizmor: ignore[self-repository]
+
+  config-lint:
+    name: Config lint
+    uses: ./.github/workflows/config-lint.yml # zizmor: ignore[self-repository]
+
+  secrets:
+    name: Secrets
+    uses: ./.github/workflows/secrets.yml # zizmor: ignore[self-repository]
+
+  tests:
+    name: Tests
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
+    uses: ./.github/workflows/tests.yml # zizmor: ignore[self-repository]
+
+  site-build:
+    name: Site build
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    uses: ./.github/workflows/site-build.yml # zizmor: ignore[self-repository]
+
+  ci:
+    name: Итоговый статус
+    if: always()
+    needs: [changes, workflows-lint, conventions, config-lint, secrets, tests, site-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверить результаты
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          WORKFLOWS_LINT: ${{ needs.workflows-lint.result }}
+          CONVENTIONS: ${{ needs.conventions.result }}
+          CONFIG_LINT: ${{ needs.config-lint.result }}
+          SECRETS: ${{ needs.secrets.result }}
+          TESTS: ${{ needs.tests.result }}
+          SITE: ${{ needs.site-build.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### CI"
+            echo ""
+            echo "| Проверка | Результат |"
+            echo "| --- | --- |"
+            echo "| changes | $CHANGES |"
+            echo "| workflows-lint | $WORKFLOWS_LINT |"
+            echo "| conventions | $CONVENTIONS |"
+            echo "| config-lint | $CONFIG_LINT |"
+            echo "| secrets | $SECRETS |"
+            echo "| tests | $TESTS |"
+            echo "| site-build | $SITE |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for result in "$CHANGES" "$WORKFLOWS_LINT" "$CONVENTIONS" "$CONFIG_LINT" "$SECRETS"; do
+            if [ "$result" != success ]; then
+              echo "Обязательная проверка не прошла: $result" >&2
+              exit 1
+            fi
+          done
+          for result in "$TESTS" "$SITE"; do
+            if [ "$result" = failure ] || [ "$result" = cancelled ]; then
+              echo "Проверка не прошла: $result" >&2
+              exit 1
+            fi
+          done
+          echo "CI зелёный"
