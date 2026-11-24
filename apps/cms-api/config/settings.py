@@ -4,6 +4,9 @@ from pathlib import Path
 
 from dmr.settings import Settings
 
+from .observability import django_logging
+from .runtime import get_settings
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # settings.py лежит в backend/config/, поэтому BASE_DIR указывает на папку backend/
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,19 +16,12 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
-
-ALLOWED_HOSTS = ["*"]
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# Локально работает dev-плейсхолдер без переменных окружения. В production
-# config_check.py потребует DJANGO_SECRET_KEY (ADR 0015 §2, NFR-SEC-03).
-# Литерал лежит в константе с нейтральным именем и передаётся как аргумент
-# os.environ.get: S105 проверяет присваивание литерала переменной-«секрету».
-_DEV_ONLY_PLACEHOLDER = "django-insecure-7^&7z)1wzsk$4!=650b(u+o%_$8jb$%li%0^0bcdegp!vwkm1q"
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", _DEV_ONLY_PLACEHOLDER)
-
+_runtime = get_settings()
+DEBUG = _runtime.debug
+ALLOWED_HOSTS = list(_runtime.allowed_hosts)
+SECRET_KEY = _runtime.secret_key.get_secret_value()
+LOGGING = django_logging(_runtime.log_level)
+del _runtime
 
 # Application definition
 
@@ -52,6 +48,7 @@ if os.environ.get("DJANGO_QUALITY_GATE") == "1":
     INSTALLED_APPS.append("django_migration_linter")
 
 MIDDLEWARE = [
+    "config.http_logging.request_logging",
     "django.middleware.security.SecurityMiddleware",
     # WhiteNoise раздаёт статику из STATIC_ROOT под любым ASGI/WSGI-сервером
     # (uvicorn/daphne/gunicorn), а не только под runserver. Должен идти сразу после SecurityMiddleware.

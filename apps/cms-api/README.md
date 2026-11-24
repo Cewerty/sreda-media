@@ -30,6 +30,19 @@ uv run manage.py collectstatic --noinput
 uv run manage.py runserver
 ```
 
+## Конфигурация и диагностика
+
+Скопируй `.env.example` в `.env` рядом с `manage.py`. Переменные процесса
+имеют приоритет. Для production выставь `DJANGO_ENV=production`,
+`DJANGO_DEBUG=0`, собственный `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`
+через запятую и `RELEASE` (тег или SHA). Перед запуском выполни
+`uv run python config_check.py`. Ошибка укажет имя параметра и правило.
+
+CMS возвращает `X-Correlation-ID` в HTTP-ответе. Найди этот UUID в поле
+`correlation_id` события `request_finished` в stdout процесса.
+`LOG_LEVEL` управляет остальными прикладными сообщениями (по умолчанию INFO).
+[Спецификация и пример события](../../docs/specs/cms-runtime-config-and-logging.md).
+
 ## Статика
 
 `STATIC_ROOT = apps/cms-api/static/` — **генерируемый** артефакт `collectstatic`,
@@ -71,10 +84,4 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
   полная env-конфигурация. Гейт уже добавлен: `justfile`, `config_check.py`,
   pyright, ruff, dev-зависимости, `lefthook.yml`, `uv.lock`.
   Команда для CI — `just check` (алиас `just ci`).
-- **#27 / #28** — структурные логи и `/healthz`, `/readyz` (ADR 0015).
-- Конфигурация сейчас захардкожена в `config/settings.py` (`SECRET_KEY`, `DEBUG=True`,
-  `ALLOWED_HOSTS=["*"]`, SQLite). Приведение к env и PostgreSQL — ADR 0015 §2–3, #26/#14.
-- `django` и `daphne` объявлены явно в `pyproject.toml` (раньше тянулись только
-  транзитивно). Остальное по конфигурации — #26/#14: `DEBUG`/`ALLOWED_HOSTS`,
-  `MAILERS` и PostgreSQL ещё не переведены на env, поэтому `check --deploy`
-  вынесен в отдельный рецепт `just deploy-strict` и в `just check` не входит.
+- **#28** — `/healthz` и `/readyz`. PostgreSQL — #26/#14.

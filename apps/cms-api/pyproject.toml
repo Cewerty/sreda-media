@@ -13,6 +13,8 @@ dependencies = [
     "dmr-dishka>=0.1.1",
     "uvicorn>=0.54.0",
     "whitenoise>=6.12.0",
+    "pydantic-settings>=2.16.0",
+    "structlog>=26.1.0",
 ]
 
 # Ставится из корня: `uv sync --all-packages`. В CI — `uv sync --frozen`.
