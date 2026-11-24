@@ -1,0 +1,151 @@
+# Подготовленный стек наблюдаемости. НЕ включается по умолчанию.
+# ADR 0005, issue #14. serv (личный сервер автора) не используется.
+#
+# Проверка синтаксиса: docker compose -f deploy/observability/docker-compose.yml config
+# Запуск только после появления сайта и тестового адреса (Q-1, PR #16):
+#   docker compose -f deploy/observability/docker-compose.yml --profile logs up -d
+#   docker compose -f deploy/observability/docker-compose.yml --profile sql up -d
+#   docker compose -f deploy/observability/docker-compose.yml --profile errors up -d
+#
+# Секреты задаются переменными окружения на VPS; в репозитории только safest默认值.
+# Все порты слушают только 127.0.0.1 и публикуются через Caddy.
+
+name: sreda-observability
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  loki:
+    image: grafana/loki:3.5.5
+    profiles: ["logs"]
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    logging: *default-logging
+
+  alloy:
+    image: grafana/alloy:v1.10.1
+    profiles: ["logs"]
+    restart: unless-stopped
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/log/caddy:/var/log/caddy:ro
+      - alloy-data:/var/lib/alloy/data
+    ports:
+      - "127.0.0.1:12345:12345"
+    depends_on:
+      - loki
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v3.8.1
+    profiles: ["logs"]
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    logging: *default-logging
+
+  node-exporter:
+    image: prom/node-exporter:v1.10.2
+    profiles: ["logs"]
+    restart: unless-stopped
+    command: --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "127.0.0.1:9100:9100"
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    profiles: ["logs", "sql", "errors"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://127.0.0.1:3000}
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD:-grafana}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning:/etc/grafana/provisioning:ro
+      - ./grafana-dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - loki
+      - prometheus
+    logging: *default-logging
+
+  postgres:
+    image: postgres:18-alpine
+    profiles: ["sql"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: observability
+      POSTGRES_USER: observability
+      POSTGRES_PASSWORD: ${POSTGRES_OBSERVABILITY_PASSWORD:-change-me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    logging: *default-logging
+
+  glitchtip-db:
+    image: postgres:18-alpine
+    profiles: ["errors"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-change-me}
+    volumes:
+      - glitchtip-db-data:/var/lib/postgresql/data
+    logging: *default-logging
+
+  glitchtip:
+    # Перед включением заменить latest на проверенный релиз и зафиксировать digest.
+    image: ${GLITCHTIP_IMAGE:-glitchtip/glitchtip:latest}
+    profiles: ["errors"]
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-replace-me-before-enabling}
+      DATABASE_URL: postgres://glitchtip:${GLITCHTIP_DB_PASSWORD:-change-me}@glitchtip-db:5432/glitchtip
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://127.0.0.1:8000}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-sreda@example.invalid}
+      VALKEY_URL: ""
+      GLITCHTIP_ENABLE_UPTIME: "false"
+      GLITCHTIP_ENABLE_LOGS: "false"
+      GLITCHTIP_ENABLE_MCP: "false"
+      ENABLE_USER_REGISTRATION: "false"
+      GLITCHTIP_RETENTION_DAYS: "14"
+    volumes:
+      - glitchtip-uploads:/files
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - glitchtip-db
+    logging: *default-logging
+
+volumes:
+  loki-data:
+  alloy-data:
+  prometheus-data:
+  grafana-data:
+  postgres-data:
+  glitchtip-db-data:
+  glitchtip-uploads:
