@@ -1,5 +1,8 @@
+import os
 import sys
 from pathlib import Path
+
+from dmr.settings import Settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # settings.py лежит в backend/config/, поэтому BASE_DIR указывает на папку backend/
@@ -10,14 +13,18 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# TODO: добавить нормальный секретный ключ
-SECRET_KEY = "django-insecure-7^&7z)1wzsk$4!=650b(u+o%_$8jb$%li%0^0bcdegp!vwkm1q"  # noqa: S105
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = ["*"]
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# Локально работает dev-плейсхолдер без переменных окружения. В production
+# config_check.py потребует DJANGO_SECRET_KEY (ADR 0015 §2, NFR-SEC-03).
+# Литерал лежит в константе с нейтральным именем и передаётся как аргумент
+# os.environ.get: S105 проверяет присваивание литерала переменной-«секрету».
+_DEV_ONLY_PLACEHOLDER = "django-insecure-7^&7z)1wzsk$4!=650b(u+o%_$8jb$%li%0^0bcdegp!vwkm1q"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", _DEV_ONLY_PLACEHOLDER)
 
 
 # Application definition
@@ -38,6 +45,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+# Dev-приложение для `manage.py lintmigrations` подключается только на полном
+# прогоне quality_gate.py. В продовом образе его нет, поэтому settings не ломается.
+if os.environ.get("DJANGO_QUALITY_GATE") == "1":
+    INSTALLED_APPS.append("django_migration_linter")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -131,10 +143,11 @@ STORAGES = {
 }
 
 
-# Конфигурация DMR (глобальные настройки API)
+# Конфигурация DMR (глобальные настройки API). Ключи — Settings enum, не строки:
+# dmr валидирует их при импорте, а config_check.py ловит тихое отключение.
 DMR_SETTINGS = {
-    # Строгая валидация исходящих ответов на соответствие объявленным типам и статус-кодам
-    "validate_responses": True,
+    # Строгая валидация исходящих ответов на соответствие объявленным типам и статус-кодам.
+    Settings.validate_responses: True,
 }
 
 

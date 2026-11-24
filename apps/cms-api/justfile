@@ -1,0 +1,64 @@
+# Quality gate apps/cms-api.
+# Запуск из apps/cms-api: `just <рецепт>`. Из корня: `just -f apps/cms-api/justfile <рецепт>`.
+# Костя переносит эти рецепты в общий justfile монорепозитория, не переписывая.
+
+# Windows: cmd, а не PowerShell — `>` в PS 5.1 пишет UTF-16 и ломает contract-diff.
+set shell := ["sh", "-cu"]
+set windows-shell := ["cmd.exe", "/c"]
+
+default: check
+
+# --- Проходящий набор. Это и есть команда для CI Кости прямо сейчас. ---
+check: lint types django
+
+ci: check
+
+# --- Отдельные слои ---
+lint:
+    uv run ruff check --no-fix .
+    uv run ruff format --check .
+
+format:
+    uv run ruff format .
+
+types:
+    uv run pyright
+
+django:
+    uv run manage.py check
+    uv run manage.py makemigrations --check --dry-run
+    uv run python config_check.py
+
+hooks:
+    uv run lefthook install
+
+# --- Не включены в ci: ждут своих задач, чтобы не ронять пайплайн ---
+# #26: тесты Django. Сейчас `pytest` без тестов вернёт exit code 5.
+tests:
+    uv run pytest -q
+
+# #25: границы модулей. tach.toml пока пуст.
+boundaries:
+    uv run tach check
+
+# #26/#14: сейчас падает на security.W* и mail.E001 (console email backend).
+# Включать после перевода DEBUG/ALLOWED_HOSTS/SECRET_KEY/MAILERS на env.
+deploy-strict:
+    uv run manage.py check --deploy --fail-level WARNING
+
+# Требует DJANGO_QUALITY_GATE=1 в окружении (подключает dev-app линтера).
+migrations-lint:
+    uv run manage.py lintmigrations
+
+# django-upgrade — кодмод, переписывает файлы. Только вручную.
+django-upgrade:
+    uv run django-upgrade --target-version 6.1 apps config
+
+# --- Контракт API: сверка схемы без генерации TS-клиента ---
+# Сначала один раз: just contract-baseline, затем закоммитить openapi.json.
+contract-baseline:
+    uv run manage.py dmr_export_schema config.urls:schema > openapi.json
+
+contract:
+    uv run manage.py dmr_export_schema config.urls:schema > openapi.json.tmp
+    git diff --no-index --exit-code openapi.json openapi.json.tmp

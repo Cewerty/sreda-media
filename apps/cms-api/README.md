@@ -67,9 +67,14 @@ exFAT — в `.agents/skills/README.md`; правила применения с 
   (ADR 0004 §2), роли PRD, `ProviderIdentity` и вход через Telegram без паролей
   (ADR 0009). Текущие `POST /api/v1/users/` и `PUT /api/v1/users/<id>/` создают
   пользователя с паролем и меняют пароль — это донорский прототип, не AUTH-01…04.
-- **#26** — quality gate: тесты, `tach` (ADR 0011), CI, config-check.
+- **#26** — тесты Django и наполнение `tach.toml` (ADR 0011), CI/CD Кости,
+  полная env-конфигурация. Гейт уже добавлен: `justfile`, `config_check.py`,
+  pyright, ruff, dev-зависимости, `lefthook.yml`, `uv.lock`.
+  Команда для CI — `just check` (алиас `just ci`).
 - **#27 / #28** — структурные логи и `/healthz`, `/readyz` (ADR 0015).
 - Конфигурация сейчас захардкожена в `config/settings.py` (`SECRET_KEY`, `DEBUG=True`,
   `ALLOWED_HOSTS=["*"]`, SQLite). Приведение к env и PostgreSQL — ADR 0015 §2–3, #26/#14.
-- Django и `daphne` используются напрямую, но объявлены только транзитивно
-  (через `django-modern-rest`). Явные зависимости — в #26.
+- `django` и `daphne` объявлены явно в `pyproject.toml` (раньше тянулись только
+  транзитивно). Остальное по конфигурации — #26/#14: `DEBUG`/`ALLOWED_HOSTS`,
+  `MAILERS` и PostgreSQL ещё не переведены на env, поэтому `check --deploy`
+  вынесен в отдельный рецепт `just deploy-strict` и в `just check` не входит.
