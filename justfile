@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI.
-verify: check install lint types test build-web config-lint workflows-lint secrets build-site
+verify: check check-logs install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -11,9 +11,15 @@ install:
     pnpm install --frozen-lockfile
     uv sync --frozen
 
+api-check:
+    cd apps/cms-api && uv sync --frozen && UV_NO_SYNC=1 just check
+
 # Документация, ADR, ссылки, CODEOWNERS и шаблонные секреты.
 check:
     python3 scripts/check.py
+
+check-logs:
+    python3 scripts/check_log_schema.py
 
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:

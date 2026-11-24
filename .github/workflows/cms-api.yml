@@ -1,16 +1,6 @@
 name: CMS API
 
 on:
-  # Переходный самостоятельный запуск для stacked PR #43.
-  # Для PR в main и пушей на main workflow вызывает ci.yml.
-  pull_request:
-    branches: [chore/27-cms-foundation-base]
-    paths:
-      - 'apps/cms-api/**'
-      - '.github/workflows/cms-api.yml'
-      - '.python-version'
-      - 'pyproject.toml'
-      - 'uv.lock'
   workflow_call:
 
 permissions:

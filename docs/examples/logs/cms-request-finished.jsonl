@@ -1,0 +1,1 @@
+{"component": "cms-api", "environment": "dev", "release": "local", "operation": "http_request", "outcome": "success", "status_code": 200, "elapsed_ms": 1671.26, "event": "request_finished", "correlation_id": "e8412371-ffff-47b9-b144-b970fe7160bd", "timestamp": "2026-11-24T08:36:54.996006Z"}
