@@ -88,13 +88,14 @@ just check      # проходящий набор: ruff, pyright, Django, config
 just ci         # алиас check — именно это вызывает Костя в CI
 just lint       # только ruff check --no-fix + ruff format --check
 just types      # pyright
+just tests      # pytest, в том числе контракт #27
 just django     # check, makemigrations --check, config_check.py
 just format     # ruff format . (вручную, перед коммитом)
 just hooks      # uv run lefthook install, один раз
 ```
 
 Рецепты **вне `check`**, чтобы не ронять пайплайн до своих задач:
-`just tests` (#26), `just boundaries` (#25, `tach.toml` пуст),
+`just boundaries` (#25, `tach.toml` пуст),
 `just deploy-strict` (#26/#14, `check --deploy --fail-level WARNING` — сейчас
 падает на `security.W*` и `mail.E001`, ждёт env-конфигурации),
 `just migrations-lint` (нужен `DJANGO_QUALITY_GATE=1`),
@@ -109,9 +110,9 @@ TS-клиента). Костя переносит рецепты в общий j
 
 - **Типы — pyright, не mypy**: быстрее на прототипе. Уровень `basic` до #25.
   `django-stubs>=6.1.2` в dev-группе **без** extra `compatible-mypy` (он притащил
-  бы mypy): pyright читает `.pyi` и понимает дескрипторы ORM. Одно послабление —
-  `reportOptionalIterable = "warning"` на `UserAdmin.fieldsets` в донорском
-  `admin.py`; вернуть в `error` после #25.
+  бы mypy): pyright читает `.pyi` и понимает дескрипторы ORM. Для
+  `UserAdmin.fieldsets` действует точечное подавление `reportOptionalIterable` в донорском
+  `admin.py`. Для остального кода эта проверка выдаёт ошибку.
 - Linters не пишут в файлы: `ruff check --no-fix`, `ruff format --check`.
   Форматирование — `uv run ruff format .` вручную, затем закоммитить.
 - `D101`/`D102` обязательны в transport-слое (`apps/**/views.py`,
@@ -133,9 +134,7 @@ TS-клиента). Костя переносит рецепты в общий j
   Гейт для него — `uv sync --frozen`, затем `just ci` из `apps/cms-api`.
 - Генерация TS-клиента из OpenAPI (`openapi-typescript`) — отдельная задача;
   `--contract` пока только сверяет схему с `openapi.json`.
-- `build_404/500/csrf_handler` и отдельный prod-профиль настроек отложены до
-  введения полноценного объекта конфигурации (#26).
-- Структурные логи — #27; `/healthz` и `/readyz` — #28; PostgreSQL и полная
-  env-конфигурация — #26/#14 (ADR 0015). Частично сделано: `SECRET_KEY` и
-  `DJANGO_DEBUG` читаются из env, есть `.env.example` и `config_check.py`.
+- `build_404/500/csrf_handler` остаются отдельной работой. HTTP-логи и
+  runtime-конфигурация описаны в [спецификации #27](../../docs/specs/cms-runtime-config-and-logging.md).
+- `/healthz` и `/readyz` — #28, PostgreSQL — #26/#14.
 - Явные зависимости `django`/`daphne` добавлены; `uv.lock` пересобран.

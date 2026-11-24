@@ -9,7 +9,7 @@ set windows-shell := ["cmd.exe", "/c"]
 default: check
 
 # --- Проходящий набор. Это и есть команда для CI Кости прямо сейчас. ---
-check: lint types django
+check: lint types django tests
 
 ci: check
 
@@ -32,11 +32,10 @@ django:
 hooks:
     uv run lefthook install
 
-# --- Не включены в ci: ждут своих задач, чтобы не ронять пайплайн ---
-# #26: тесты Django. Сейчас `pytest` без тестов вернёт exit code 5.
 tests:
     uv run pytest -q
 
+# --- Отдельные проверки ---
 # #25: границы модулей. tach.toml пока пуст.
 boundaries:
     uv run tach check

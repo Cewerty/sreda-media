@@ -7,17 +7,20 @@
 
 from __future__ import annotations
 
-import os
+from importlib import import_module
 
+from django.core.exceptions import ImproperlyConfigured
 from dmr.settings import Settings
-
-from config import settings as cfg
 
 
 def main() -> int:
     """Проверить настройки DMR и prod-окружение."""
     errors: list[str] = []
-    dmr_settings = cfg.DMR_SETTINGS
+    try:
+        dmr_settings = import_module("config.settings").DMR_SETTINGS
+    except ImproperlyConfigured as exc:
+        print(f"config-check: {exc}")
+        return 1
 
     # Документация DMR: ключи DMR_SETTINGS типизированы Settings enum и
     # валидируются при импорте. Строковый ключ — тихое расхождение.
@@ -37,16 +40,6 @@ def main() -> int:
         value = dmr_settings.get(member) if member is not None else None
         if isinstance(value, (list, tuple)) and not value:
             errors.append(f"DMR_SETTINGS: {name} не должен быть пустым")
-
-    if os.environ.get("DJANGO_ENV") == "production":
-        if not os.environ.get("DJANGO_SECRET_KEY"):
-            errors.append("DJANGO_SECRET_KEY: обязателен в production")
-        if cfg.DEBUG:
-            errors.append("DJANGO_DEBUG: production не допускает DEBUG=True")
-        if cfg.ALLOWED_HOSTS == ["*"]:
-            errors.append("DJANGO_ALLOWED_HOSTS: wildcard недопустим в production")
-        if str(cfg.SECRET_KEY).startswith("django-insecure-"):
-            errors.append("DJANGO_SECRET_KEY: dev-плейсхолдер недопустим в production")
 
     if errors:
         for line in errors:
