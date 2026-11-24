@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -67,6 +67,14 @@ coverage: install
 # Ежедневная проверка относительных ссылок в docs/.
 link-check:
     python3 scripts/check_links.py
+
+# MkDocs strict-сборка во временном каталоге, без публикации в Pages.
+docs-build:
+    bash scripts/docs-build.sh
+
+# Smoke статической витрины: 200/404 и маркер контента (после адреса/Q-1).
+smoke url:
+    SREDA_SMOKE_MARKER="${SREDA_SMOKE_MARKER:-}" ./scripts/smoke-static.sh "{{url}}"
 
 # Локальный предпрогон перед коммитом: только чтение, хуки не ставит.
 pre-commit:

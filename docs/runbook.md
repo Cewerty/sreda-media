@@ -144,7 +144,11 @@ CONFIRM=1 just restore-obs <UTC-метка>
 
 Подпись статического артефакта подготавливается отдельно: `just sign-artifact dist` (cosign keyless, `.sig`/`.pem` и `artifact.sha256`). В CI шаг из `site-build.yml` вызывается неблокирующе (`continue-on-error: true`) и не входит в обязательный `verify`: нужен реальный адрес выкладки и OIDC. Если `cosign` не установлен, скрипт честно сообщает о пропуске.
 
-Резервная репетиция `just backup-drill` запускается ночью workflow `backup-drill.yml` (только `DRY_RUN`, вне обязательного статуса). Документация проверяется ежедневно заданием `docs-check` в `docs-pages.yml` через `mkdocs build --strict` без публикации.
+Резервная репетиция `just backup-drill` запускается ночью workflow `backup-drill.yml` (только `DRY_RUN`, вне обязательного статуса). Документация проверяется ежедневно заданием `docs-check` в `docs-pages.yml` через `mkdocs build --strict` без публикации; та же strict-сборка входит в `just verify` через `just docs-build` и работает во временном каталоге.
+
+Выкладка описана кодом в `.github/workflows/deploy.yml`: `workflow_dispatch`, Environment `sreda-production`, сборка витрины, подготовка хэша/подписи (`sign-artifact.sh`), сверка (`verify-artifact.sh`), атомарная выкладка (`deploy-static.sh`) и smoke. Workflow ничего не публикует без `ENABLE_DEPLOY=true` и явного `dry_run=false`; до Q-1 и появления `apps/site` в main он останавливается на проверке исходников. Smoke отдельно запускается командой `just smoke <url>`: главная ожидает 200, несуществующая страница 404, при заданном `SREDA_SMOKE_MARKER` проверяется маркер контента.
+
+Репетиция provisioning алертов по расписанию — `alert-drill.yml` (по понедельникам, `continue-on-error`, правила остаются `enabled=false`). Конфигурация Docker Compose и корневого `Dockerfile` проверяется неблокирующими шагами в `supply-chain.yml` (`docker compose config` и hadolint). Dependency review и OSV-сканирование работают в отдельном неблокирующем `dependency-review.yml` и не влияют на обязательный статус `ci`.
 
 Для полного гейда CMS API локально нужен PostgreSQL 18: `just api-db-up` поднимает контейнер на `127.0.0.1:55432`, `just verify` использует этот порт автоматически, `just api-db-down` останавливает его. Подробности — [DEV-API.md](DEV-API.md). В CI рецепт пропускается: там свой сервис на 5432.
 

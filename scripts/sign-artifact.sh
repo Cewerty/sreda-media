@@ -7,8 +7,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARTIFACT="${1:-dist}"
 [ -d "$ARTIFACT" ] || { printf '[sign] ОШИБКА: нет каталога %s\n' "$ARTIFACT" >&2; exit 1; }
-command -v cosign >/dev/null 2>&1 || { printf '[sign] cosign не установлен: пропускаю подготовку\n'; exit 0; }
 
+# Хэш готовится всегда: verify-artifact должен работать и без cosign/OIDC.
 TARBALL="$ARTIFACT/artifact.tar.gz"
 tar czf "$TARBALL" -C "$ARTIFACT" --exclude='artifact.tar.gz' --exclude='artifact.sha256' \
     --exclude='cosign.sig' --exclude='cosign.pem' .
@@ -16,7 +16,14 @@ tar czf "$TARBALL" -C "$ARTIFACT" --exclude='artifact.tar.gz' --exclude='artifac
     cd "$ARTIFACT"
     sha256sum artifact.tar.gz > artifact.sha256
 )
+printf '[sign] SHA256 подготовлен: %s/artifact.sha256\n' "$ARTIFACT"
+
+if ! command -v cosign >/dev/null 2>&1; then
+    printf '[sign] cosign не установлен: подпись пропущена, хэш остался\n'
+    exit 0
+fi
+
 cosign sign-blob --yes --output-signature "$ARTIFACT/cosign.sig" \
     --output-certificate "$ARTIFACT/cosign.pem" "$TARBALL"
-printf '[sign] подпись подготовлена: %s/cosign.sig, %s/cosign.pem, %s/artifact.sha256\n' \
-    "$ARTIFACT" "$ARTIFACT" "$ARTIFACT"
+printf '[sign] подпись подготовлена: %s/cosign.sig, %s/cosign.pem\n' \
+    "$ARTIFACT" "$ARTIFACT"
