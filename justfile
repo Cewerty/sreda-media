@@ -25,7 +25,7 @@ workflows-lint:
 
 # gitleaks по всей истории репозитория (issue #13, замечание 2).
 secrets:
-    go install github.com/gitleaks/gitleaks/v8@v8.30.1
+    go install github.com/zricethezav/gitleaks/v8@v8.30.1
     "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner
 
 # Тесты доступных компонентов.
