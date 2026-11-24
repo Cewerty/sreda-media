@@ -72,3 +72,13 @@ check-content:
 build-site: check-content
     test -f docs/adr/0014-cross-stack-content-contract.md
     if [ -d apps/site ]; then pnpm --filter site build; else echo "build-site: apps/site ещё нет (PR #16), сборка не запускается"; fi
+
+# Резервная копия наблюдаемости (issue #14, этап 0.2). НЕ входит в verify:
+# это операция на VPS, а не проверка чистого checkout.
+backup-obs:
+    ./scripts/backup-observability.sh
+
+# Восстановление по UTC-префиксу: just restore-obs 20261125T120000Z
+# Деструктивно — требуется CONFIRM=1 (см. docs/runbook.md).
+restore-obs prefix:
+    ./scripts/restore-observability.sh "{{prefix}}"

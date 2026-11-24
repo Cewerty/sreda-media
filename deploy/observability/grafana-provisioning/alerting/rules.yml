@@ -1,0 +1,140 @@
+# Технические алерты по логам (ADR 0005, issue #14).
+# НЕ слать уведомления, пока нет сайта и адреса: все правила помечены enabled="false"
+# и не попадают под политику из policies.yml. Включение — отдельное изменение после
+# PR #16 и Q-1; provisioned-ресурсы редактируются только в этих файлах.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: sreda-logs
+    folder: sreda-observability
+    interval: 60s
+    rules:
+      - uid: sreda-log-errors
+        title: Рост ошибок в логах контейнеров
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Более пяти строк ERROR в stdout за пять минут
+          description: Проверить Loki по correlation ID и последнюю выкладку.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-health-probe-failed
+        title: Неудачная проверка здоровья
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "health_probe_failed" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: Зафиксирован отказ health/readiness
+          description: Сверить /healthz, /readyz и зависимые сервисы.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-rollback-finished
+        title: Выполнен откат выкладки
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "rollback_finished" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: Витрина откачена к предыдущему релизу
+          description: Проверить карточку инцидента и указать причину отката.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"

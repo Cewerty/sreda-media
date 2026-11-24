@@ -74,6 +74,13 @@ GlitchTip остаются под `profiles` и включаются тольк�
 
 В прод обязательно переопределить `GRAFANA_ADMIN_PASSWORD` и остальные секреты
 переменными окружения; значения в репозитории — только для локального запуска.
-Все порты слушают `127.0.0.1` и публикуются через Caddy. Внешние мониторы и
-алерты по-прежнему ждут PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
+Все порты слушают `127.0.0.1` и публикуются через Caddy.
+
+Grafana provisioning лежит в подпапках
+`deploy/observability/grafana-provisioning/{datasources,dashboards,alerting}/`.
+Правила `alerting/rules.yml` и Telegram-контакт `alerting/contact-points.yml`
+подготовлены, но у всех правил стоит label `enabled="false"` и они не попадают
+под маршрут из `alerting/policies.yml`, поэтому уведомлений нет. Включение внешних
+мониторов и алертов — после PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
+Бэкап PostgreSQL/Grafana и восстановление описаны в [runbook](runbook.md) (этап 0.2).
 Личный сервер автора (`serv`) не используется.

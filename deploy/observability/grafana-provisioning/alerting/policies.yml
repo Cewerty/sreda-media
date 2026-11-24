@@ -1,0 +1,14 @@
+# Все правила создаются с label enabled="false". Маршрут срабатывает только после
+# того, как правило явно переведено в enabled="true" вместе с появлением адреса.
+# Provisioning перезаписывает дерево политик целиком — редактировать только здесь.
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: sreda-telegram
+    group_by: [alertname, severity]
+    object_matchers:
+      - ['enabled', '=', 'true']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h

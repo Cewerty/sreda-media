@@ -4,6 +4,7 @@ providers:
   - name: Sreda
     orgId: 1
     folder: Sreda
+    folderUid: sreda-observability
     type: file
     disableDeletion: true
     updateIntervalSeconds: 60

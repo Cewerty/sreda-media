@@ -67,12 +67,39 @@ scripts/deploy-static.sh verify https://sreda.sielom.ru /srv/sreda/releases/<п�
 под profiles. Схема SQL — `deploy/observability/schema.sql`, дашборд —
 `deploy/observability/grafana-dashboards/overview.json`, контракт логов проверяется
 через `just check-logs` (входит в `just check` в CI). Решение по Kafka и триггеры
-его возврата описаны в ADR 0005. Внешние мониторы и алерты создаём только после
-PR #16 и Q-1; `serv` не используется. В проде переопределяем секреты через env.
+его возврата описаны в ADR 0005. `serv` не используется. В проде переопределяем
+секреты через env.
+
+Grafana provisioning лежит строго в подпапках
+`deploy/observability/grafana-provisioning/{datasources,dashboards,alerting}/`.
+Правила в `alerting/rules.yml` и контакт `alerting/contact-points.yml` подготовлены,
+но все правила имеют label `enabled="false"` и не попадают под маршрут из
+`alerting/policies.yml`, поэтому уведомлений нет. Включение алертов — после PR #16
+и Q-1: заменить label на `enabled="true"` и задать `GRAFANA_TELEGRAM_CHAT_ID`
+и `GRAFANA_TELEGRAM_BOT_TOKEN` переменными окружения на VPS. Provisioned-ресурсы
+редактируются только в этих файлах, не в UI Grafana.
 
 При настройке мониторинга обязательны: дедупликация уведомлений, защита от alert storm, проверка восстановления после недоступности, документирование ограничения при падении VPS и фактические расходы (память/CPU/диск/стоимость).
 
-## 8. Открытые зависимости
+## 8. Резервное копирование и восстановление (этап 0.2)
+
+Бэкап операционных событий PostgreSQL и пользовательских данных Grafana:
+
+```bash
+BACKUP_DIR=/srv/sreda/backups just backup-obs
+```
+
+Скрипт `scripts/backup-observability.sh` снимает `pg_dump` (профиль `sql` должен быть поднят) и tar volume Grafana, проверяет сжатие и пишет манифест SHA256 с UTC-меткой. Устаревшие копии удаляются по `RETENTION_DAYS` (по умолчанию 14 дней). Loki не копируется: логи имеют собственный retention 30 дней, восстановление логов не предусмотрено. Рецепты `backup-obs`/`restore-obs` намеренно не входят в `just verify`.
+
+Восстановление по UTC-метке из имени файла:
+
+```bash
+CONFIRM=1 just restore-obs <UTC-метка>
+```
+
+Скрипт `scripts/restore-observability.sh` сверяет манифест, перезаписывает таблицы SQL, останавливает Grafana, распаковывает volume и поднимает сервис обратно. Только SQL можно восстановить командой `CONFIRM=1 ./scripts/restore-observability.sh <UTC-метка> --sql-only`. Без `CONFIRM=1` скрипт отказывается; репетицию делать на тестовом окружении до боевого применения.
+
+## 9. Открытые зависимости
 
 - Q-1 с Артёмом — финальный домен и адрес выкладки.
 - PR #16 — собираемый Astro-сайт в main.
