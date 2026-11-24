@@ -176,10 +176,7 @@ reportUnknownMemberType = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 reportPrivateUsage = false
-# Единственное ложное срабатывание стабов: в django-stubs 6.1.2
-# UserAdmin.fieldsets объявлен None, хотя в Django он заполнен. Строка в
-# apps/users/admin.py уйдёт вместе с донорским доменом в #25 — вернуть error.
-reportOptionalIterable = "warning"
+reportOptionalIterable = "error"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"

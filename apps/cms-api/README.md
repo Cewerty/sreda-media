@@ -34,7 +34,7 @@ uv run manage.py runserver
 
 Скопируй `.env.example` в `.env` рядом с `manage.py`. Переменные процесса
 имеют приоритет. Для production выставь `DJANGO_ENV=production`,
-`DJANGO_DEBUG=0`, собственный `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`
+`DJANGO_DEBUG=false`, собственный `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`
 через запятую и `RELEASE` (тег или SHA). Перед запуском выполни
 `uv run python config_check.py`. Ошибка укажет имя параметра и правило.
 

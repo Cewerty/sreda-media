@@ -110,9 +110,9 @@ TS-клиента). Костя переносит рецепты в общий j
 
 - **Типы — pyright, не mypy**: быстрее на прототипе. Уровень `basic` до #25.
   `django-stubs>=6.1.2` в dev-группе **без** extra `compatible-mypy` (он притащил
-  бы mypy): pyright читает `.pyi` и понимает дескрипторы ORM. Одно послабление —
-  `reportOptionalIterable = "warning"` на `UserAdmin.fieldsets` в донорском
-  `admin.py`; вернуть в `error` после #25.
+  бы mypy): pyright читает `.pyi` и понимает дескрипторы ORM. Для
+  `UserAdmin.fieldsets` действует точечное подавление `reportOptionalIterable` в донорском
+  `admin.py`. Для остального кода эта проверка выдаёт ошибку.
 - Linters не пишут в файлы: `ruff check --no-fix`, `ruff format --check`.
   Форматирование — `uv run ruff format .` вручную, затем закоммитить.
 - `D101`/`D102` обязательны в transport-слое (`apps/**/views.py`,

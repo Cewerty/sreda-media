@@ -58,11 +58,15 @@ class AppSettings(BaseSettings):
 
 
 @lru_cache(maxsize=1)
+def _load_settings() -> AppSettings:
+    return AppSettings()
+
+
 def get_settings() -> AppSettings:
     try:
-        return AppSettings()
+        return _load_settings()
     except ValidationError as exc:
-        rules = []
+        rules: list[str] = []
         for error in exc.errors(include_input=False, include_url=False):
             name = ".".join(map(str, error["loc"]))
             rules.append(f"{name}: {error['msg']}" if name else error["msg"])

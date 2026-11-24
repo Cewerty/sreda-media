@@ -12,6 +12,10 @@ class CustomUserAdmin(UserAdmin):
     ``uid`` (публичный идентификатор) и ``role`` (роль).
     """
 
-    fieldsets = (*UserAdmin.fieldsets, ("Дополнительно", {"fields": ("uid", "role")}))
+    # Django's UserAdmin sets a tuple. django-stubs inherits the optional type from ModelAdmin.
+    fieldsets = (
+        *UserAdmin.fieldsets,  # pyright: ignore[reportOptionalIterable]
+        ("Дополнительно", {"fields": ("uid", "role")}),
+    )
     add_fieldsets = (*UserAdmin.add_fieldsets, ("Дополнительно", {"fields": ("uid", "role")}))
     list_display = ("username", "email", "role", "is_staff", "is_active")

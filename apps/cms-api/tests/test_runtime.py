@@ -4,15 +4,14 @@ import sys
 from pathlib import Path
 
 import pytest
-from django.core.exceptions import ImproperlyConfigured
 from pydantic import ValidationError
 
-from config.runtime import AppSettings, get_settings
+from config.runtime import AppSettings
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION = {
     "DJANGO_ENV": "production",
-    "DJANGO_DEBUG": "0",
+    "DJANGO_DEBUG": "false",
     "DJANGO_SECRET_KEY": "synthetic-canary-key",
     "DJANGO_ALLOWED_HOSTS": "one.example, two.example",
     "RELEASE": "v0.2",
@@ -36,7 +35,7 @@ def test_dotenv_and_precedence(tmp_path, monkeypatch):
     [
         ("DJANGO_SECRET_KEY", ""),
         ("DJANGO_SECRET_KEY", "django-insecure-test"),
-        ("DJANGO_DEBUG", "1"),
+        ("DJANGO_DEBUG", "true"),
         ("DJANGO_ALLOWED_HOSTS", "host,*"),
         ("DJANGO_ALLOWED_HOSTS", ""),
         ("RELEASE", "  "),
@@ -48,27 +47,16 @@ def test_invalid_production(field, value):
 
 
 @pytest.mark.parametrize("args", [["config_check.py"], ["manage.py", "check"]])
-@pytest.mark.parametrize("valid", [True, False])
-def test_entrypoint(args, valid):
+@pytest.mark.parametrize("invalid_field", [None, "DJANGO_DEBUG", "LOG_LEVEL"])
+def test_entrypoint(args, invalid_field):
     env = os.environ | PRODUCTION
-    if not valid:
-        env["DJANGO_DEBUG"] = "invalid-canary-value"
+    if invalid_field is not None:
+        env[invalid_field] = "invalid-canary-value"
     result = subprocess.run(  # noqa: S603 -- fixed interpreter and test-owned arguments
         [sys.executable, *args], cwd=ROOT, env=env, capture_output=True, timeout=120, check=False
     )
     output = result.stdout + result.stderr
-    assert (result.returncode == 0) == valid
-    if not valid:
-        assert b"DJANGO_DEBUG" in output
+    assert (result.returncode == 0) == (invalid_field is None)
+    if invalid_field is not None:
+        assert invalid_field.encode() in output
     assert b"canary" not in output
-
-
-def test_safe_validation_error(monkeypatch):
-    monkeypatch.setenv("LOG_LEVEL", "secret-canary")
-    get_settings.cache_clear()
-    try:
-        with pytest.raises(ImproperlyConfigured, match="LOG_LEVEL") as exc:
-            get_settings()
-        assert "canary" not in str(exc.value)
-    finally:
-        get_settings.cache_clear()
