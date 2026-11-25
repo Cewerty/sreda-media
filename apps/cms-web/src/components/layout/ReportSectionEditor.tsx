@@ -36,7 +36,7 @@ export function ReportSectionEditor({
         <h3 className="text-lg font-semibold text-slate-900 dark:text-[#E3E3E3]">
           {title}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant={mode === "edit" ? "secondary" : "ghost"}

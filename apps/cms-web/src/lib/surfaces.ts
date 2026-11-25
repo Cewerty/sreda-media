@@ -21,7 +21,8 @@
  */
 
 /** Карточка верхнего уровня: `bg-card` (`#F4F5F7` / `#252525`), без hover. */
-export const CARD_SURFACE_CLASS = "border border-transparent bg-card";
+export const CARD_SURFACE_CLASS =
+  "border border-transparent bg-card shadow-none";
 
 /** Интерактивная карточка: hover-граница `--border-hover` (§3.3). */
 export const CARD_INTERACTIVE_CLASS = `${CARD_SURFACE_CLASS} transition-colors hover:border-border-hover`;
