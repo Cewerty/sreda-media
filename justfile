@@ -68,6 +68,10 @@ check-uptime:
 check-host-config:
     python3 scripts/check_host_config.py
 
+# Read-only сверка compose-профилей метрик и датасорса Grafana, без запуска сервисов.
+logs-profile-check:
+    uv run --with pyyaml==6.0.4 python scripts/check_prometheus_profiles.py
+
 # Сверка SLO, дашборда и выключенных правил.
 check-slo:
     uv run --with pyyaml==6.0.4 python scripts/check_slo.py

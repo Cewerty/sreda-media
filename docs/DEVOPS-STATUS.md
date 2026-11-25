@@ -88,6 +88,7 @@ just docs-build          # mkdocs build --strict без публикации
 just alert-drill         # статический контроль + тест в Loki, если он поднят
 just backup-drill        # безопасная репетиция в DRY_RUN=1
 just obs-health          # только чтение уже поднятого контура
+just logs-profile-check  # profiles/logs и датасорс Grafana без запуска сервисов
 
 # Артефакт static site
 just build-site
@@ -109,13 +110,15 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
+| Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
+| Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После PR #16/Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
 
 ## Блокирующие зависимости
 
 - **PR #16** — минимальный Astro-сайт в `main`; без него `build-site` честно пропускается.
 - **Q-1 с Артёмом** — домен, DNS и тестовый адрес выкладки.
 - **ENABLE_DEPLOY / ENABLE_DOCS_PAGES** — флаги включаются отдельно, не «по умолчанию».
-- **ADR 0006** — финальное решение о хостинге остаётся за Ильёй.
+- **ADR 0006** — финальное решение о хостинге остаётся за Ильёй; включение метрик (`--profile logs`) дополнительно ждёт ресурсного gate §4.
 - **#14** — независимый мониторинг и уведомления после появления объекта наблюдения.
 
 ## Правила работы в этой ветке

@@ -1,0 +1,11 @@
+# Конфигурация blackbox_exporter для внешних HTTP-проб (issue #14, ADR 0005).
+# Сервис поднимается только вместе с --profile logs; реальный адрес сюда не пишется.
+modules:
+  http_2xx:
+    prober: http
+    timeout: 15s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200]
+      follow_redirects: true
+      preferred_ip_protocol: ip4

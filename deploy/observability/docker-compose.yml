@@ -5,7 +5,7 @@
 # Запуск базового контура (без изменений в приложениях):
 #   docker compose -f deploy/observability/docker-compose.yml up -d
 # Дополнительные контуры — только под profiles, по ресурсам VPS:
-#   --profile logs   → Prometheus + node_exporter (метрики)
+#   --profile logs   → Prometheus + node_exporter + blackbox_exporter (метрики и внешние пробы)
 #   --profile sql    → PostgreSQL с отобранными событиями
 #   --profile errors → GlitchTip
 #
@@ -69,6 +69,17 @@ services:
       - /:/host:ro,rslave
     ports:
       - "127.0.0.1:9100:9100"
+    logging: *default-logging
+
+  blackbox-exporter:
+    # Внешние HTTP-пробы; конфиг не содержит реального адреса сайта.
+    image: prom/blackbox-exporter:v0.26.0
+    profiles: ["logs"]
+    restart: unless-stopped
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    ports:
+      - "127.0.0.1:9115:9115"
     logging: *default-logging
 
   grafana:
