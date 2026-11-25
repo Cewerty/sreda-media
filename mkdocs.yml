@@ -80,9 +80,4 @@ nav:
       - Шаблон ADR: adr-template.md
   - Спецификации:
       - Рубрики сайта: specs/site-04-rubrics.md
-      - 'DevOps hardening: Ready now': superpowers/specs/2026-11-25-devops-hardening-ready-now-design.md
-      - 'DevOps hardening: After address': superpowers/specs/2026-11-25-devops-hardening-after-address-design.md
-      - 'DevOps hardening: CI and readiness': superpowers/specs/2026-11-25-devops-ci-hardening-and-readiness-design.md
-      - 'DevOps readiness and hygiene': superpowers/specs/2026-11-25-devops-readiness-and-hygiene-design.md
-      - 'DevOps deploy and release audit': superpowers/specs/2026-11-25-devops-deploy-and-release-audit-design.md
       - Шаблон спецификации: specs/_template.md
