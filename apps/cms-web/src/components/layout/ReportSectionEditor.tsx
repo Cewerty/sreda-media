@@ -32,7 +32,7 @@ export function ReportSectionEditor({
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-[#E3E3E3]">
           {title}
         </h3>

@@ -159,6 +159,7 @@
   }
   .cms-shell > aside nav a {
     justify-content: center;
+    min-height: 44px;
     padding-inline: 0;
   }
   .cms-dashboard h1 {
