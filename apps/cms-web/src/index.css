@@ -101,31 +101,38 @@
   }
 }
 
-/* CMS fields retain a visible boundary independently of their card surface. */
-.cms-workspace
-  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
-    [type="hidden"]
-  ),
-.cms-workspace textarea,
-.cms-workspace select {
-  min-height: 42px;
-  border: 1px solid hsl(var(--input));
-  background: hsl(var(--field));
-  color: hsl(var(--foreground));
-  padding: 10px 12px;
-  box-shadow: none;
-}
-.cms-workspace input:focus-visible,
-.cms-workspace textarea:focus-visible,
-.cms-workspace select:focus-visible {
-  outline: 2px solid hsl(var(--field-ring));
-  outline-offset: 2px;
-  border-color: hsl(var(--field-ring));
-  box-shadow: none;
-}
-.cms-workspace input[aria-invalid="true"],
-.cms-workspace textarea[aria-invalid="true"] {
-  border-color: hsl(var(--destructive));
+@layer base {
+  /* Zero specificity lets utility classes override field defaults. */
+  :where(
+      .cms-workspace
+        input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+          [type="hidden"]
+        ),
+      .cms-workspace textarea,
+      .cms-workspace select
+    ) {
+    border: 1px solid hsl(var(--input));
+    background: hsl(var(--field));
+    color: hsl(var(--foreground));
+    padding: 10px 12px;
+    box-shadow: none;
+  }
+  :where(
+      .cms-workspace input:focus-visible,
+      .cms-workspace textarea:focus-visible,
+      .cms-workspace select:focus-visible
+    ) {
+    outline: 2px solid hsl(var(--field-ring));
+    outline-offset: 2px;
+    border-color: hsl(var(--field-ring));
+    box-shadow: none;
+  }
+  :where(
+      .cms-workspace input[aria-invalid="true"],
+      .cms-workspace textarea[aria-invalid="true"]
+    ) {
+    border-color: hsl(var(--destructive));
+  }
 }
 .cms-workspace {
   min-width: 0;

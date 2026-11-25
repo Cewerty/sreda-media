@@ -54,7 +54,7 @@ export function CuratorDashboardPage() {
 
   return (
     <div className="cms-dashboard mx-auto max-w-6xl space-y-10">
-      <section className={`cms-profile ${cardClassName}`}>
+      <section className={cardClassName}>
         <div className="flex items-center gap-4">
           {curator.avatarUrl ? (
             <img
@@ -88,7 +88,7 @@ export function CuratorDashboardPage() {
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
           Очередь задач
         </h2>
-        <div className="cms-summary grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className={cardClassName}>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" aria-hidden="true" />
@@ -121,7 +121,7 @@ export function CuratorDashboardPage() {
 
       <Link
         to="/candidates"
-        className={`cms-directory group flex items-center justify-between gap-4 rounded-2xl border border-transparent bg-muted p-6 transition-colors hover:border-border ${focusRingClassName}`}
+        className={`group flex items-center justify-between gap-4 rounded-2xl border border-transparent bg-muted p-6 transition-colors hover:border-border ${focusRingClassName}`}
       >
         <div className="min-w-0">
           <p className="text-lg font-semibold text-foreground">
