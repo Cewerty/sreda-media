@@ -7,8 +7,8 @@
 
 - **Uptime Kuma** — open source мониторинг доступности. Compose-файл:
   `deploy/uptime-kuma/docker-compose.yml`. Слушает только `127.0.0.1:3001`;
-  наружу публикуется через Caddy с HTTPS и basic auth ( адрес и пароль задаются
-  на VPS, в репозитории секретов нет ).
+  наружу публикуется через Caddy с HTTPS и basic auth (адрес и пароль задаются
+  на VPS, в репозитории секретов нет).
 - **Внешняя точка проверки** — сам Uptime Kuma на том же VPS. Если VPS недоступен
   целиком, монитор тоже молчит. Ограничение фиксируется здесь и в runbook:
   для независимой проверки нужен второй провайдер или внешний сервис; до его
@@ -44,8 +44,8 @@
 
 ## Ресурсы
 
--compose любого дополнительного сервиса добавляет потребление RAM/CPU; Kuma
- Leh lightweight (SQLite, без отдельной БД). Фактические цифры записать в runbook
+Каждый дополнительный compose-сервис добавляет потребление RAM/CPU; Kuma
+лёгкий (SQLite, без отдельной БД). Фактические цифры записать в runbook
  после пробного запуска на VPS. Бюджет инфраструктуры — ≤500 ₽/мес (PRD, NFR-COST-01).
 
 ## Что не входит в этап 0.1
@@ -53,3 +53,45 @@
 Grafana + Alloy + Loki, `/healthz` и `/readyz`, GlitchTip и резервное копирование
 PostgreSQL описаны в [runbook](runbook.md) как план этапов 0.2–0.4 и выполняются
 по мере появления CMS (issue #14).
+
+## Включённый базовый контур логов
+
+Базовый контур **включён по умолчанию** в
+[deploy/observability/docker-compose.yml](../deploy/observability/docker-compose.yml):
+Loki, Alloy и Grafana поднимаются командой
+`docker compose -f deploy/observability/docker-compose.yml up -d`. Alloy забирает
+access-логи Caddy и stdout/stderr всех контейнеров без сэмплирования; Loki хранит
+их 30 дней с ограниченной кардинальностью меток. Схема SQL
+(../deploy/observability/schema.sql), дашборд
+(../deploy/observability/grafana-dashboards/overview.json) и проверка контракта
+(../scripts/check_log_schema.py) остаются на месте.
+
+Никому из разработчиков не нужно запускать этот compose: приложение по-прежнему
+пишет JSON в stdout, без Kafka-клиентов и новых обязательных переменных. Контракт
+логов проверяется в CI отдельным path-aware job `log-schema` внутри того же
+обязательного статуса `ci` (локально — `just check-logs` в составе `just verify`),
+поэтому новый отдельный статус не вводится. Prometheus, node_exporter, PostgreSQL и
+GlitchTip остаются под `profiles` и включаются только по ресурсам VPS.
+
+В прод обязательно переопределить `GRAFANA_ADMIN_PASSWORD` и остальные секреты
+переменными окружения; значения в репозитории — только для локального запуска.
+Все порты слушают `127.0.0.1` и публикуются через Caddy.
+
+Grafana provisioning лежит в подпапках
+`deploy/observability/grafana-provisioning/{datasources,dashboards,alerting}/`.
+Правила `alerting/rules.yml` и Telegram-контакт `alerting/contact-points.yml`
+подготовлены, но у всех правил стоит label `enabled="false"` и они не попадают
+под маршрут из `alerting/policies.yml`, поэтому уведомлений нет. Включение внешних
+мониторов и алертов — после PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
+Provisioning проверяется рецептом `just check-alerts` внутри `verify`: секреты Telegram
+должны быть env-ссылками, правила — отключены (`enabled="false"`), маршрут политик —
+только для `enabled=true`. Шаблон env-переменных лежит в
+`deploy/observability/.env.example`. Бэкап PostgreSQL/Grafana и восстановление описаны
+в [runbook](runbook.md) (этап 0.2).
+Локальный контур для разработчиков с высокими портами и отдельными volume описан в
+[DEV-OBSERVABILITY.md](DEV-OBSERVABILITY.md): он не монтирует системные логи и не
+конфликтует с рабочими сервисами. Аудиты зависимостей и SBOM идут в отдельном
+неблокирующем workflow `supply-chain.yml` и не влияют на обязательный статус `ci`.
+Репетиция алертов — `just alert-drill` (статическая проверка плюс тестовая запись в Loki, если он поднят), здоровье запущенного контура — `just obs-health` (только чтение). Обе команды не входят в `verify` и не включают отключённые правила. Подпись артефакта через cosign вызывается в `site-build.yml` **неблокирующим** шагом (`continue-on-error: true`) и ждёт реального адреса/OIDC; в `verify` не входит, без cosign честно пропускается. Ночной `backup-drill.yml` (DRY_RUN) и ежедневный `docs-check` (`mkdocs build --strict` без публикации) работают вне обязательного статуса `ci`. Для локального CMS API добавлен PostgreSQL 18 на 127.0.0.1:55432 (`just api-db-up` / `just api-db-down`, см. [DEV-API.md](DEV-API.md)); в CI рецепт пропускается и используется сервис из `cms-api.yml`. Личный сервер автора (`serv`) не используется.
+
+Еженедельная репетиция алертов (`alert-drill.yml`, по понедельникам) проверяет provisioning и при поднятом Loki пишет тестовое событие, не включая правила и не отправляя уведомления. Smoke витрины (`just smoke <url>`) проверяет 200 на главной, 404 на несуществующей странице и, если задан `SREDA_SMOKE_MARKER`, маркер контента; вызывается после реальной выкладки из `deploy.yml` и ждёт Q-1/PR #16. Strict-сборка документации (`just docs-build`) теперь входит в `just verify`, но не публикует Pages. Docker Compose/hadolint и dependency review/OSV идут в неблокирующих workflow `supply-chain.yml` и `dependency-review.yml` и не меняют обязательный статус `ci`.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly journal vacuum
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+Unit=journald-vacuum.service
+
+[Install]
+WantedBy=timers.target

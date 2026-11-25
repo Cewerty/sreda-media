@@ -1,0 +1,451 @@
+# Технические алерты по логам (ADR 0005, issue #14).
+# НЕ слать уведомления, пока нет сайта и адреса: все правила помечены enabled="false"
+# и не попадают под политику из policies.yml. Включение — отдельное изменение после
+# PR #16 и Q-1; provisioned-ресурсы редактируются только в этих файлах.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: sreda-logs
+    folder: sreda-observability
+    interval: 60s
+    rules:
+      - uid: sreda-log-errors
+        title: Рост ошибок в логах контейнеров
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-log-errors
+          summary: Более пяти строк ERROR в stdout за пять минут
+          description: Проверить Loki по correlation ID и последнюю выкладку.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-health-probe-failed
+        title: Неудачная проверка здоровья
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "health_probe_failed" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-health-probe-failed
+          summary: Зафиксирован отказ health/readiness
+          description: Сверить /healthz, /readyz и зависимые сервисы.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-rollback-finished
+        title: Выполнен откат выкладки
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({stream="stdout"} |= "rollback_finished" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-rollback-finished
+          summary: Витрина откачена к предыдущему релизу
+          description: Проверить карточку инцидента и указать причину отката.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-grafana-errors
+        title: Ошибки в логах Grafana
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({component="grafana"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-grafana-errors
+          summary: Grafana пишет ошибки в логи
+          description: Проверить доступность Loki и состояние контейнера Grafana.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-loki-errors
+        title: Ошибки приёма логов в Loki
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({component="loki"} |= "ERROR" [5m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-loki-errors
+          summary: Loki сообщает об ошибках записи
+          description: Проверить диск, retention и доступность хранилища.
+        labels:
+          severity: warning
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-backup-failed
+        title: Резервное копирование не удалось
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({job="backup"} |= "backup_failed" [10m]))
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-backup-failed
+          summary: Очередной backup завершился ошибкой
+          description: Проверить backup.jsonl, свободное место и доступ к PostgreSQL.
+        labels:
+          severity: critical
+          component: backup
+          enabled: "false"
+
+      - uid: sreda-disk-low
+        title: Мало свободного места на диске
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint="/"} < 0.1
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-disk-low
+          summary: Свободно менее 10% корневого раздела
+          description: Включить профиль logs и проверить node_exporter на VPS.
+        labels:
+          severity: critical
+          component: observability
+          enabled: "false"
+
+      - uid: sreda-slo-fast-burn
+        title: SLO — быстрое сгорание error budget
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: avg_over_time(probe_success{job="sreda"}[1h]) < 0.856
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-slo-fast-burn
+          summary: Доступность за час ниже порога быстрого сгорания
+          description: Сравнить с slo.json и проверить выкладку.
+        labels:
+          severity: critical
+          component: slo
+          enabled: "false"
+
+      - uid: sreda-slo-slow-burn
+        title: SLO — медленное сгорание error budget
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: avg_over_time(probe_success{job="sreda"}[6h]) < 0.94
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: NoData
+        execErrState: Error
+        for: 30m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-slo-slow-burn
+          summary: Доступность за 6 часов ниже порога медленного сгорания
+          description: Запланировать разбор до исчерпания error budget.
+        labels:
+          severity: warning
+          component: slo
+          enabled: "false"
+
+      - uid: sreda-backup-stale
+        title: Бэкап старше 24 часов
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: time() - backup_last_success_timestamp > 24 * 3600
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: reduce
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-backup-stale
+          summary: Последний успешный бэкап старше 24 часов
+          description: Проверить backup.timer и just backup-drill.
+        labels:
+          severity: warning
+          component: backup
+          enabled: "false"

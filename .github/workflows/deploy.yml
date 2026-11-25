@@ -1,0 +1,66 @@
+name: Deploy static (gated)
+
+# Подготовка выкладки как код. Ничего не публикует без var ENABLE_DEPLOY=true
+# и явного dry_run=false. Реальный адрес/Q-1 и Environment настраиваются на VPS.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Только подготовить и проверить артефакт'
+        type: boolean
+        required: false
+        default: true
+      base_url:
+        description: 'Базовый URL для smoke (например, https://sreda.sielom.ru)'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, verify and deploy
+    if: ${{ vars.ENABLE_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    environment: sreda-production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+      - name: Require site in main
+        run: |
+          if [ ! -d apps/site ]; then
+            echo "apps/site ещё нет (PR #16): выкладка не выполняется"
+            exit 1
+          fi
+      - name: Build static artifact
+        run: just build-site
+      - name: Prepare hash and optional signature
+        run: ./scripts/sign-artifact.sh dist
+      - name: Verify artifact hash and signature
+        run: ./scripts/verify-artifact.sh dist
+      - name: Deploy atomically
+        if: ${{ inputs.dry_run == false }}
+        env:
+          RELEASES: /srv/sreda/releases
+          CURRENT: /srv/sreda/current
+        run: ./scripts/deploy-static.sh deploy dist "$RELEASES" "$CURRENT"
+      - name: Smoke after deploy
+        if: ${{ inputs.dry_run == false && inputs.base_url != '' }}
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          SREDA_SMOKE_MARKER: ${{ vars.SREDA_SMOKE_MARKER }}
+        run: ./scripts/smoke-static.sh "$BASE_URL"
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: >-
+          echo "dry_run=true: артефакт собран и проверен, выкладка и smoke пропущены"

@@ -1,0 +1,28 @@
+{
+  "uid": "sreda-slo-external",
+  "title": "Sreda SLO — external probe",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "tags": ["gated", "external"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "External availability (%)",
+      "targets": [
+        {"refId": "A", "datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "avg_over_time(probe_success{job=\"sreda-external\"}[30d]) * 100"}
+      ],
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "External probe latency",
+      "targets": [
+        {"refId": "B", "datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "probe_duration_seconds{job=\"sreda-external\"}"}
+      ],
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0}
+    }
+  ]
+}

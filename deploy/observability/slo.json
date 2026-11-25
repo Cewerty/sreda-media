@@ -1,0 +1,18 @@
+{
+  "availability": {
+    "target_percent": 99,
+    "window_days": 30,
+    "burn_rate_fast": 14.4,
+    "burn_rate_slow": 6
+  },
+  "latency_p95_ms": 800,
+  "backup_freshness_hours": 24,
+  "rto_minutes": 15,
+  "rpo_hours": 24,
+  "dashboard_uid": "sreda-slo",
+  "rule_uids": [
+    "sreda-slo-fast-burn",
+    "sreda-slo-slow-burn",
+    "sreda-backup-stale"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "notification": "telegram-sreda",
+  "interval_seconds": 60,
+  "monitors": [
+    {
+      "name": "sreda-main",
+      "type": "http",
+      "url": "${SREDA_SITE_URL}",
+      "expected_status": 200,
+      "timeout": 15
+    },
+    {
+      "name": "sreda-404",
+      "type": "http",
+      "url": "${SREDA_SITE_URL}/__sreda-nonexistent-page__",
+      "expected_status": 404,
+      "timeout": 15
+    }
+  ]
+}

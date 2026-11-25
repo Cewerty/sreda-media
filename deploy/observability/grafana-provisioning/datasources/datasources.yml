@@ -1,0 +1,37 @@
+# Grafana читает provisioning ТОЛЬКО из подпапок datasources/, dashboards/, alerting/.
+# ADR 0005, issue #14. UID нужны, чтобы алерты ссылались на датасорсы по имени.
+apiVersion: 1
+
+prune: true
+
+datasources:
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    editable: false
+
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: false
+
+  - name: ObservabilitySQL
+    uid: observability-sql
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: grafana
+    database: observability
+    sslmode: disable
+    jsonData:
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ${POSTGRES_GRAFANA_PASSWORD}
+    editable: false

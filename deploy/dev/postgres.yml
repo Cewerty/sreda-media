@@ -1,0 +1,26 @@
+# Локальный PostgreSQL 18 для just verify (issue #26). Не трогает прод и сервер.
+# Порт 55432 выбран, чтобы не конфликтовать с basic-стеком на 5432.
+name: sreda-dev-postgres
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sreda
+      POSTGRES_USER: sreda
+      POSTGRES_PASSWORD: sreda
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sreda -d sreda"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      # PostgreSQL 18 хранит данные в major-version подкаталоге: монтируем
+      # весь /var/lib/postgresql, иначе контейнер отказывается стартовать.
+      - postgres-dev-data:/var/lib/postgresql
+
+volumes:
+  postgres-dev-data:
