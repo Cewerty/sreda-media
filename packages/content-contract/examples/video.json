@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "video-001",
+  "kind": "video",
+  "slug": "kak-chitali-perfokarty",
+  "title": "Как читали перфокарты",
+  "rubric_id": "history",
+  "author_ids": [
+    "guest"
+  ],
+  "published_at": "2026-11-12T08:00:00Z",
+  "payload": {
+    "url": "https://www.youtube.com/watch?v=abcdefghijk",
+    "description": "Показываем, как считыватель распознавал отверстия в карте."
+  }
+}
