@@ -16,9 +16,13 @@ log() { printf '[verify-artifact] %s\n' "$*"; }
 
 if [ -f "$ARTIFACT/cosign.sig" ] && [ -f "$ARTIFACT/cosign.pem" ]; then
     if command -v cosign >/dev/null 2>&1; then
+        COSIGN_OIDC_ISSUER="${SREDA_COSIGN_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
+        COSIGN_IDENTITY_REGEX="${SREDA_COSIGN_IDENTITY_REGEX:-^https://github\\.com/Sreda-Media/sreda-media/\\.github/workflows/(provenance|site-build)\\.yml@refs/heads/main$}"
         cosign verify-blob \
             --certificate "$ARTIFACT/cosign.pem" \
             --signature "$ARTIFACT/cosign.sig" \
+            --certificate-oidc-issuer "$COSIGN_OIDC_ISSUER" \
+            --certificate-identity-regexp "$COSIGN_IDENTITY_REGEX" \
             "$ARTIFACT/artifact.tar.gz" || fail "проверка cosign не пройдена"
         log "SHA256 и cosign подпись корректны"
     else
