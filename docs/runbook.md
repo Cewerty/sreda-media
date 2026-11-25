@@ -5,7 +5,7 @@
 
 ## Быстрые ссылки по алертам
 
-Каждое правило Grafana Alerting ссылается на соответствующий якорь ниже. Правила остаются отключёнными до PR #16 и Q-1; включение — отдельное изменение с обновлением проверяющих скриптов.
+Каждое правило Grafana Alerting ссылается на соответствующий якорь ниже. Правила остаются отключёнными до адреса Q-1 и обновления проверяющих скриптов; включение — отдельное изменение.
 
 <a id="sreda-log-errors"></a>
 <a id="sreda-health-probe-failed"></a>
@@ -37,9 +37,11 @@ uvx --from rust-just just stage-site
 uvx --from rust-just just check-site-artifact
 ```
 
-Команда проверяет контракт ADR 0014, валидирует материалы и медиа (`just check-content`) и собирает Astro, который теперь есть в `main` (PR #16). `stage-site` копирует `apps/site/dist` в корневой `dist`; `check-site-artifact` проверяет `index.html` и `404.html`. До закрытия issue #5 последний чекер сообщает об отсутствии страницы 404 — это зона фронтенда, а не DevOps. В CI те же шаги выполняются через `site-build`, итоговый статус `ci`.
+Команда проверяет контракт ADR 0014, валидирует материалы и медиа (`just check-content`) и собирает Astro, который уже есть в `main`. `stage-site` копирует `apps/site/dist` в корневой `dist`. В CI `site-build.yml` выполняет `build-site` и `stage-site`; итоговый обязательный статус — `ci`. `check-site-artifact` проверяет `index.html` и `404.html`, но запускается только gated-шагом перед выкладкой (`deploy.yml`) и подготовкой provenance (`provenance.yml`): до закрытия issue #5 он сообщает об отсутствии страницы 404 и не входит в обязательный `ci`. Это зона фронтенда, а не DevOps.
 
 ## 3. Выкладка
+
+После шагов §2 (сборка уже выполнена на этом checkout):
 
 ```bash
 just stage-site
@@ -95,7 +97,7 @@ Grafana provisioning лежит строго в подпапках
 `alerting/policies.yml`, поэтому уведомлений нет. Подготовленные правила: рост
 ошибок в stdout, отказ health/readiness, откат выкладки, ошибки Grafana, ошибки
 приёма в Loki, провал backup и мало свободного места на диске (последнее требует
-профиля `logs` с node_exporter). Включение алертов — после PR #16 и Q-1: заменить
+профиля `logs` с node_exporter). Включение алертов — после адреса Q-1 и обновления проверяющих скриптов: заменить
 label на `enabled="true"` и задать `GRAFANA_TELEGRAM_CHAT_ID`
 и `GRAFANA_TELEGRAM_BOT_TOKEN` переменными окружения на VPS. Provisioned-ресурсы
 редактируются только в этих файлах, не в UI Grafana.
@@ -164,7 +166,7 @@ CONFIRM=1 just restore-obs <UTC-метка>
 
 Резервная репетиция `just backup-drill` запускается ночью workflow `backup-drill.yml` (только `DRY_RUN`, вне обязательного статуса). Документация проверяется ежедневно заданием `docs-check` в `docs-pages.yml` через `mkdocs build --strict` без публикации; та же strict-сборка входит в `just verify` через `just docs-build` и работает во временном каталоге.
 
-Выкладка описана кодом в `.github/workflows/deploy.yml`: `workflow_dispatch`, Environment `sreda-production`, сборка витрины, подготовка хэша/подписи (`sign-artifact.sh`), сверка (`verify-artifact.sh`), атомарная выкладка (`deploy-static.sh`) и smoke. Workflow ничего не публикует без `ENABLE_DEPLOY=true` и явного `dry_run=false`; до Q-1 и появления `apps/site` в main он останавливается на проверке исходников. Smoke отдельно запускается командой `just smoke <url>`: главная ожидает 200, несуществующая страница 404, при заданном `SREDA_SMOKE_MARKER` проверяется маркер контента.
+Выкладка описана кодом в `.github/workflows/deploy.yml`: `workflow_dispatch`, Environment `sreda-production`, сборка витрины, подготовка хэша/подписи (`sign-artifact.sh`), сверка (`verify-artifact.sh`), атомарная выкладка (`deploy-static.sh`) и smoke. Workflow ничего не публикует без `ENABLE_DEPLOY=true` и явного `dry_run=false`; до адреса Q-1 и закрытия issue #5 (404.html) он останавливается на проверке артефакта. Smoke отдельно запускается командой `just smoke <url>`: главная ожидает 200, несуществующая страница 404, при заданном `SREDA_SMOKE_MARKER` проверяется маркер контента.
 
 Репетиция provisioning алертов по расписанию — `alert-drill.yml` (по понедельникам, `continue-on-error`, правила остаются `enabled=false`). Конфигурация Docker Compose и корневого `Dockerfile` проверяется неблокирующими шагами в `supply-chain.yml` (`docker compose config` и hadolint). Dependency review и OSV-сканирование работают в отдельном неблокирующем `dependency-review.yml` и не влияют на обязательный статус `ci`.
 
@@ -173,7 +175,7 @@ CONFIRM=1 just restore-obs <UTC-метка>
 ## 10. Открытые зависимости
 
 - Q-1 с Артёмом — финальный домен и адрес выкладки.
-- PR #16 — собираемый Astro-сайт в main.
+- #5 — страница 404 в `apps/site`: до её появления `check-site-artifact` не проходит и выкладка заблокирована.
 - #14 — мониторинг, уведомления, Grafana/Alloy/Loki, GlitchTip, backup/restore.
 - #41 — конфигурация Django для `deploy-strict` (относится к CMS, не к витрине).
 

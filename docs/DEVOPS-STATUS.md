@@ -59,7 +59,7 @@
 | `audit-workflows` | `just verify` | SHA-пины внешних GitHub Actions в workflow. |
 | `audit-hardening` | `just verify` (обязательно) | Права workflow, persist-credentials, отсутствие github.event.* в run:. |
 | `check-alert-runbooks` | `just verify` (обязательно) | Каждое правило алерта ссылается на существующий якорь в runbook. |
-| `stage-site` | Отдельно | Копирует `apps/site/dist` в корневой `dist`; саму сборку не меняет. |
+| `stage-site` | CI `site-build`, отдельно | Копирует `apps/site/dist` в корневой `dist`; саму сборку не меняет. |
 | `check-site-artifact` | Gated deploy/provenance, отдельно | Проверяет `dist/index.html` и `dist/404.html`; 404 ждёт issue #5. |
 | `doctor` | Отдельно | Справка по инструментам, всегда exit 0; ничего не включает. |
 | `dr-drill` | Отдельно | DR-репетиция во временном каталоге, без `/srv` и systemd. |
@@ -75,7 +75,7 @@
 
 Все проверки подготовлены, но ничего не включают в прод: правила алертов
 остаются выключенными, выкладка и включение мониторов — отдельные решения после
-адреса и PR #16. Хостовые шаблоны, SLO/DR, DX-утилиты и read-only политика
+адреса Q-1 и закрытия issue #5. Хостовые шаблоны, SLO/DR, DX-утилиты и read-only политика
 реализованы этим набором коммитов, поэтому в разделе «Идеи на потом» остались
 только нереализованные пункты. SBOM уже загружается как артефакт в
 `supply-chain.yml`; повторно добавлять его не нужно.
@@ -110,18 +110,18 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 
 | Что | Почему выключено | Как включить |
 | --- | --- | --- |
-| Реальная выкладка через `deploy.yml` | Нет сайта в `main` (PR #16) и финального адреса (Q-1) | `ENABLE_DEPLOY=true`, `dry_run=false`, `base_url` |
+| Реальная выкладка через `deploy.yml` | Astro-сайт уже в `main`; нет финального адреса (Q-1), флага `ENABLE_DEPLOY` и страницы 404 (issue #5) | `ENABLE_DEPLOY=true`, `dry_run=false`, `base_url`, закрыть issue #5 |
 | Публикация MkDocs на GitHub Pages | Нужно решение по адресу и budgets | `ENABLE_DOCS_PAGES=true` + dispatch |
 | Uptime Kuma мониторы | Предполагают существующий URL | Применить `scripts/provision-uptime-kuma.sh` после Q-1 |
 | Правила Grafana Alerting | Не хотим алертов о несуществующем сайте | Заменить `labels.enabled` на `"true"` и задать Telegram env |
 | Внешняя независимая точка проверки | Один VPS = одна точка отказа | Отдельный провайдер или сервис после решения Ильи |
-| Реальный smoke и Lighthouse | Ждут `apps/site` и адрес | После слияния PR #16 и Q-1 |
+| Реальный smoke и Lighthouse | Ждут адрес Q-1 и страницу 404 (issue #5); `apps/site` уже в `main` | После Q-1 и закрытия issue #5 |
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
 | Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до адреса Q-1: нет флагов, QA-адреса и подготовленного артефакта | После Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
 | Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
-| Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После PR #16/Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
+| Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
 
 ## Блокирующие зависимости
 
@@ -165,7 +165,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 
 ## Порядок включения SLO-алертов
 
-Включение — отдельный коммит, только после слияния PR #16 и получения адреса Q-1:
+Включение — отдельный коммит, только после получения адреса Q-1 и обновления проверяющих скриптов:
 
 1. Заполнить Telegram contact point через env `GRAFANA_TELEGRAM_BOT_TOKEN` и `GRAFANA_TELEGRAM_CHAT_ID`.
 2. В `deploy/observability/grafana-provisioning/alerting/rules.yml` заменить `labels.enabled: "false"` на `"true"` только у трёх SLO-правил.
