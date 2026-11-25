@@ -9,9 +9,18 @@ ARTIFACT="${1:-dist}"
 [ -d "$ARTIFACT" ] || { printf '[sign] ОШИБКА: нет каталога %s\n' "$ARTIFACT" >&2; exit 1; }
 
 # Хэш готовится всегда: verify-artifact должен работать и без cosign/OIDC.
+# Архив пишется во временное имя и исключается из самого себя: GNU tar падал
+# бы с «file changed as we read it», если бы писал artifact.tar.gz внутрь
+# архивируемого каталога. Финальное имя появляется только после tar.
 TARBALL="$ARTIFACT/artifact.tar.gz"
-tar czf "$TARBALL" -C "$ARTIFACT" --exclude='artifact.tar.gz' --exclude='artifact.sha256' \
-    --exclude='cosign.sig' --exclude='cosign.pem' .
+TMPTAR="$ARTIFACT/artifact.tar.gz.tmp"
+trap 'rm -f "$TMPTAR"' EXIT
+rm -f "$TMPTAR"
+: > "$TMPTAR"
+tar czf "$TMPTAR" -C "$ARTIFACT" --exclude='artifact.tar.gz' --exclude='artifact.tar.gz.tmp' \
+    --exclude='artifact.sha256' --exclude='cosign.sig' --exclude='cosign.pem' .
+mv -f "$TMPTAR" "$TARBALL"
+trap - EXIT
 (
     cd "$ARTIFACT"
     sha256sum artifact.tar.gz > artifact.sha256
