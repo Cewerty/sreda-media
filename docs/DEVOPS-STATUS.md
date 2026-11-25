@@ -103,6 +103,8 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Правила Grafana Alerting | Не хотим алертов о несуществующем сайте | Заменить `labels.enabled` на `"true"` и задать Telegram env |
 | Внешняя независимая точка проверки | Один VPS = одна точка отказа | Отдельный провайдер или сервис после решения Ильи |
 | Реальный smoke и Lighthouse | Ждут `apps/site` и адрес | После слияния PR #16 и Q-1 |
+| Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
+| Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 
 ## Блокирующие зависимости
 
@@ -140,3 +142,21 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 - Тонкая настройка порогов алертов по фактическим метрикам, а не на глаз.
 - Dependabot/Renovate намеренно не добавляем: создают PR-флуд и мешают принятому trunk-based процессу.
 - Kafka не возвращаем: при текущем объёме это лишняя операционная нагрузка.
+
+## Порядок включения SLO-алертов
+
+Включение — отдельный коммит, только после слияния PR #16 и получения адреса Q-1:
+
+1. Заполнить Telegram contact point через env `GRAFANA_TELEGRAM_BOT_TOKEN` и `GRAFANA_TELEGRAM_CHAT_ID`.
+2. В `deploy/observability/grafana-provisioning/alerting/rules.yml` заменить `labels.enabled: "false"` на `"true"` только у трёх SLO-правил.
+3. В ТОМ ЖЕ коммите включения обновить `scripts/check_alert_rules.py` и
+   `scripts/check_slo.py`: разрешить `enabled: "true"` ровно для трёх UID из
+   `deploy/observability/slo.json` (`rule_uids`), для остальных правил оставить
+   `"false"`. Затем запустить `just check-alerts`, `just check-slo` и `just verify`
+   и убедиться, что все проверки зелёные. Пока проверки не обновлены, шаг 3
+   завершится FAIL — это ожидаемое поведение текущего контура.
+4. Применить `deploy/observability/grafana-dashboards-gated/slo-external.json` после настройки внешнего probe: файл лежит ВНЕ каталога `grafana-dashboards/`, который монтируется в Grafana, поэтому сейчас он не попадает в авто-провизионинг. Job `sreda-external` должен быть настроен в blackbox-экспортере — сейчас его нет ни в одном scrape-конфиге.
+5. Записать дату включения в этот раздел.
+
+До выполнения этих шагов алерты остаются выключенными, а `just check-alerts`
+проверяет именно выключенное состояние.
