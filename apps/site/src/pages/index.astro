@@ -1,26 +1,27 @@
 ---
 import { getEntry, render } from "astro:content";
 
-const article = await getEntry("articles", "test-article");
+const article = await getEntry("articles", "article-001");
 
 if (!article) {
-    throw new Error("Не найдена тестовая статья test-article");
+  throw new Error("Не найдена тестовая статья article-001");
 }
 const { Content } = await render(article);
 ---
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sreda Media</title>
-</head>
-<body>
+  </head>
+  <body>
     <main>
-        <article>
-            <h1>{article.data.title}</h1>
-            <Content />
-        </article>
+      <article>
+        <h1>{article.data.title}</h1>
+        <Content />
+      </article>
     </main>
-</body>
+  </body>
 </html>
