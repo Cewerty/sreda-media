@@ -2,6 +2,7 @@
 # Python-часть живёт в uv workspace: см. корневой pyproject.toml.
 packages:
   - "apps/cms-web"
+  - "apps/site"
   - "packages/*"
 
 # pnpm 10+ по умолчанию запрещает postinstall-скрипты зависимостей.
@@ -10,3 +11,4 @@ packages:
 allowBuilds:
   "@biomejs/biome": true
   esbuild: true
+  sharp: true
