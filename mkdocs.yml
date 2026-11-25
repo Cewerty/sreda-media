@@ -58,6 +58,7 @@ nav:
       - DevOps — текущий статус: DEVOPS-STATUS.md
       - Ротация секретов: SECRET-ROTATION.md
       - SLO и восстановление: slo.md
+      - Ресурсный бюджет: resource-budget.md
       - Vercel preview: vercel-preview-research.md
       - Передача DHR: dhr-transfer.md
   - ADR:

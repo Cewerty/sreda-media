@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-alert-runbooks check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint check-env-contract check-ports check-image-pins workflows-lint audit-hardening secrets build-site
+verify: check check-logs check-alerts check-alert-runbooks check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint check-env-contract check-ports check-image-pins check-ops-policy workflows-lint audit-hardening secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -79,6 +79,10 @@ check-ports:
 # Read-only проверка фиксации образов: latest запрещён.
 check-image-pins:
     python3 scripts/check_image_pins.py
+
+# Read-only политика: backup, ресурсный gate и дефолты логирования.
+check-ops-policy:
+    uv run --with pyyaml==6.0.4 python scripts/check_ops_policy.py
 
 # Read-only сверка compose-профилей метрик и датасорса Grafana, без запуска сервисов.
 logs-profile-check:

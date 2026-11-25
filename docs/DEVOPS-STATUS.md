@@ -139,6 +139,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 - [Ротация секретов](SECRET-ROTATION.md) — PAT, Grafana, Postgres, Telegram, Kuma.
 - [Шаблон инцидента](incidents/template.md) — влияние, хронология, корень проблемы и action items.
 - [Ротация ключа бэкапов](BACKUP-KEY-ROTATION.md) — смена `age`-ключа и перешифрование бэкапов.
+- `docs/resource-budget.md` — лимиты и gate включения метрик по ADR 0006 §4.
 - [ADR 0005](adr/0005-observability-glitchtip.md) — логи и стек наблюдаемости.
 - [ADR 0015](adr/0015-runtime-and-data-operations.md) — неизменяемые артефакты и операции.
 - [Issue #9](https://github.com/Sreda-Media/sreda-media/issues/9) — эпик CI и выкладки.
