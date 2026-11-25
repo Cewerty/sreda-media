@@ -63,6 +63,13 @@
 | `dr-drill` | Отдельно | DR-репетиция во временном каталоге, без `/srv` и systemd. |
 | `check-github-policy` | Отдельно, read-only | Только чтение защиты `main`; GitHub не меняется. |
 | `release-manifest` | Вручную, вне `verify` и CI | Манифест артефакта как код, без подписи и выкладки. |
+| `check-env-contract` | `just verify` | Имена `${VAR}` сверены с шаблонами окружения, значения не печатаются. |
+| `check-ports` | `just verify` | Карта портов dev/prod, только `127.0.0.1`, без коллизий. |
+| `check-image-pins` | `just verify` | Образы зафиксированы; `latest` запрещён кроме GLITCHTIP. |
+| `check-ops-policy` | `just verify` | Backup 24ч, ресурсный gate ADR 0006 §4, дефолты логирования. |
+| `release-readiness` | Вручную, вне `verify` и CI | Таблица готовности с вердиктом `READY`/`NO-GO`; ничего не включает. |
+| `check-commits` | Вручную, вне `verify` и CI | Subject, тело и `Refs:` новых коммитов. |
+| `check-issues` | Вручную, вне `verify` и CI | Read-only отчёт о карточках без label/assignee и stale. |
 
 Все проверки подготовлены, но ничего не включают в прод: правила алертов
 остаются выключенными, выкладка и включение мониторов — отдельные решения после
@@ -110,6 +117,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
+| Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до слияния PR #16 и адреса Q-1: нет артефакта, флагов и QA-адреса | После PR #16/Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
 | Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
 | Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После PR #16/Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
 
