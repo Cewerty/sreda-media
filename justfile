@@ -278,3 +278,7 @@ stage-site:
 # Read-only проверка контракта артефакта; не входит в verify и ci.
 check-site-artifact:
     python3 scripts/check_site_artifact.py
+
+# Сквозная локальная репетиция выкладки, без прода и гейтов; вне verify и CI.
+deploy-drill:
+    ./scripts/deploy-drill.sh
