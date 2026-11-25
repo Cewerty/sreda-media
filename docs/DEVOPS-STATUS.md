@@ -57,9 +57,12 @@
 | `check-slo` | `just verify` | Сверка `docs/slo.md`, `slo.json`, дашборда и выключенных правил алертов. |
 | `check-runbook` | `just verify` | Команды `just` и `scripts/*` в bash-блоках `docs/*.md` сверены с репозиторием. |
 | `audit-workflows` | `just verify` | SHA-пины внешних GitHub Actions в workflow. |
+| `audit-hardening` | `just verify` | Да | Права workflow, persist-credentials, отсутствие github.event.* в run:. |
+| `check-alert-runbooks` | `just verify` | Да | Каждое правило алерта ссылается на существующий якорь в runbook. |
 | `doctor` | Отдельно | Справка по инструментам, всегда exit 0; ничего не включает. |
 | `dr-drill` | Отдельно | DR-репетиция во временном каталоге, без `/srv` и systemd. |
 | `check-github-policy` | Отдельно, read-only | Только чтение защиты `main`; GitHub не меняется. |
+| `release-manifest` | `workflow_dispatch` / вручную | Нет | Манифест артефакта как код, без подписи и выкладки. |
 
 Все проверки подготовлены, но ничего не включают в прод: правила алертов
 остаются выключенными, выкладка и включение мониторов — отдельные решения после
@@ -105,6 +108,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Реальный smoke и Lighthouse | Ждут `apps/site` и адрес | После слияния PR #16 и Q-1 |
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
+| Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
 
 ## Блокирующие зависимости
 
@@ -130,6 +134,8 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 - [Локальная наблюдаемость](DEV-OBSERVABILITY.md) — контур на высоких портах.
 - [Локальный PostgreSQL](DEV-API.md) — гейд CMS API без ручного контейнера.
 - [Ротация секретов](SECRET-ROTATION.md) — PAT, Grafana, Postgres, Telegram, Kuma.
+- [Шаблон инцидента](incidents/template.md) — влияние, хронология, корень проблемы и action items.
+- [Ротация ключа бэкапов](BACKUP-KEY-ROTATION.md) — смена `age`-ключа и перешифрование бэкапов.
 - [ADR 0005](adr/0005-observability-glitchtip.md) — логи и стек наблюдаемости.
 - [ADR 0015](adr/0015-runtime-and-data-operations.md) — неизменяемые артефакты и операции.
 - [Issue #9](https://github.com/Sreda-Media/sreda-media/issues/9) — эпик CI и выкладки.
