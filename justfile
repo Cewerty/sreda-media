@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint workflows-lint audit-hardening secrets build-site
+verify: check check-logs check-alerts check-alert-runbooks check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint workflows-lint audit-hardening secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -55,6 +55,10 @@ check-logs:
 # Provisioning Grafana Alerting: секреты через env, правила отключены до сайта и адреса.
 check-alerts:
     uv run --with pyyaml==6.0.4 python scripts/check_alert_rules.py
+
+# Runbook-ссылки алертов: у каждого правила есть якорь в docs/runbook.md.
+check-alert-runbooks:
+    uv run --with pyyaml==6.0.4 python scripts/check_alert_runbooks.py
 
 # Конфигурация Uptime Kuma как код: мониторы 200/404, Telegram, интервал >=30.
 check-uptime:

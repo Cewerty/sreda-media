@@ -3,6 +3,21 @@
 Документ для дежурного. Актуальная версия: этап 0.1 (статическая витрина).
 Основание: ADR 0006 (VPS + Caddy), ADR 0015 (Runtime and Data Operations), issues #7, #9, #14.
 
+## Быстрые ссылки по алертам
+
+Каждое правило Grafana Alerting ссылается на соответствующий якорь ниже. Правила остаются отключёнными до PR #16 и Q-1; включение — отдельное изменение с обновлением проверяющих скриптов.
+
+<a id="sreda-log-errors"></a>
+<a id="sreda-health-probe-failed"></a>
+<a id="sreda-rollback-finished"></a>
+<a id="sreda-grafana-errors"></a>
+<a id="sreda-loki-errors"></a>
+<a id="sreda-backup-failed"></a>
+<a id="sreda-disk-low"></a>
+<a id="sreda-slo-fast-burn"></a>
+<a id="sreda-slo-slow-burn"></a>
+<a id="sreda-backup-stale"></a>
+
 ## 1. Состав и адреса
 
 - Публичный адрес (после Q-1): `https://sreda.sielom.ru`.

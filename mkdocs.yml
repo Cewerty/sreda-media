@@ -50,6 +50,8 @@ nav:
   - Эксплуатация:
       - Развёртывание: DEPLOYMENT.md
       - Runbook: runbook.md
+      - Шаблон инцидента: incidents/template.md
+      - Ротация ключа бэкапов: BACKUP-KEY-ROTATION.md
       - Мониторинг: monitoring.md
       - Локальная наблюдаемость: DEV-OBSERVABILITY.md
       - Локальный PostgreSQL: DEV-API.md

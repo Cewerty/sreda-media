@@ -46,6 +46,7 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-log-errors
           summary: Более пяти строк ERROR в stdout за пять минут
           description: Проверить Loki по correlation ID и последнюю выкладку.
         labels:
@@ -89,6 +90,7 @@ groups:
         execErrState: Error
         for: 1m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-health-probe-failed
           summary: Зафиксирован отказ health/readiness
           description: Сверить /healthz, /readyz и зависимые сервисы.
         labels:
@@ -132,6 +134,7 @@ groups:
         execErrState: Error
         for: 0s
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-rollback-finished
           summary: Витрина откачена к предыдущему релизу
           description: Проверить карточку инцидента и указать причину отката.
         labels:
@@ -175,6 +178,7 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-grafana-errors
           summary: Grafana пишет ошибки в логи
           description: Проверить доступность Loki и состояние контейнера Grafana.
         labels:
@@ -218,6 +222,7 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-loki-errors
           summary: Loki сообщает об ошибках записи
           description: Проверить диск, retention и доступность хранилища.
         labels:
@@ -261,6 +266,7 @@ groups:
         execErrState: Error
         for: 0s
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-backup-failed
           summary: Очередной backup завершился ошибкой
           description: Проверить backup.jsonl, свободное место и доступ к PostgreSQL.
         labels:
@@ -304,6 +310,7 @@ groups:
         execErrState: Error
         for: 10m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-disk-low
           summary: Свободно менее 10% корневого раздела
           description: Включить профиль logs и проверить node_exporter на VPS.
         labels:
@@ -347,6 +354,7 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-slo-fast-burn
           summary: Доступность за час ниже порога быстрого сгорания
           description: Сравнить с slo.json и проверить выкладку.
         labels:
@@ -390,6 +398,7 @@ groups:
         execErrState: Error
         for: 30m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-slo-slow-burn
           summary: Доступность за 6 часов ниже порога медленного сгорания
           description: Запланировать разбор до исчерпания error budget.
         labels:
@@ -433,6 +442,7 @@ groups:
         execErrState: Error
         for: 10m
         annotations:
+          runbook_url: https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#sreda-backup-stale
           summary: Последний успешный бэкап старше 24 часов
           description: Проверить backup.timer и just backup-drill.
         labels:
