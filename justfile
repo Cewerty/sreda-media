@@ -254,3 +254,19 @@ check-commits:
 # Read-only отчёт о гигиене открытых issue; ничего не меняет в GitHub.
 check-issues:
     python3 scripts/check_issue_hygiene.py
+
+# Учебный хаос-двойник: временный Compose-стек, без прода и алертов.
+chaos-twin scenario:
+    ./scripts/chaos-twin.sh "{{scenario}}"
+
+# Все учебные сценарии подряд; вне verify и CI.
+chaos-drill:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for scenario in stop-loki disk-full stale-backup; do
+        ./scripts/chaos-twin.sh "$scenario"
+    done
+
+# Демо-дайджест по фиксированным локальным событиям, без сети и секретов.
+sre-digest:
+    python3 scripts/log_digest.py

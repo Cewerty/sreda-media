@@ -1,0 +1,4 @@
+{"timestamp":"2026-11-25T08:00:00Z","event":"request_finished","component":"cms-web","outcome":"success","status_code":200,"elapsed_ms":42,"operation":"http_request","environment":"test","release":"fixture"}
+{"timestamp":"2026-11-25T08:00:01Z","event":"request_finished","component":"cms-web","outcome":"success","status_code":200,"elapsed_ms":51,"operation":"http_request","environment":"test","release":"fixture"}
+{"timestamp":"2026-11-25T08:00:02Z","event":"request_failed","component":"cms-api","outcome":"error","status_code":500,"elapsed_ms":318,"operation":"http_request","environment":"test","release":"fixture"}
+{"timestamp":"2026-11-25T08:00:03Z","event":"backup_finished","component":"observability","outcome":"success","elapsed_ms":1210,"operation":"backup_job","environment":"test","release":"fixture"}
