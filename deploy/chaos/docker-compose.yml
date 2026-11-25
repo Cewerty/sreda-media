@@ -1,0 +1,32 @@
+# Локальный хаос-двойник. Не публикует порты, не монтирует /srv и не трогает прод.
+name: sreda-chaos
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "1m"
+    max-file: "2"
+
+services:
+  loki:
+    image: grafana/loki:3.5.5
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ../observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    logging: *default-logging
+    networks:
+      - chaos
+
+  probe:
+    image: alpine:3.22
+    command: sh -c 'while true; do sleep 3600; done'
+    logging: *default-logging
+    networks:
+      - chaos
+
+volumes:
+  loki-data:
+
+networks:
+  chaos:

@@ -1,0 +1,39 @@
+# Шаблон конфигурации Prometheus с внешней пробой через blackbox_exporter.
+# НЕ подключён к основному prometheus.yml: адрес появляется только после Q-1.
+# После PR #16 и Q-1: envsubst < prometheus-external.yml.template > prometheus.yml
+# и перезапустить сервис prometheus под --profile logs. ${SREDA_SITE_URL} должен
+# быть полным URL (https://...), без реального домена в репозитории.
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy:12345"]
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: blackbox
+    static_configs:
+      - targets: ["blackbox-exporter:9115"]
+
+  - job_name: sreda-external
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["${SREDA_SITE_URL}"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

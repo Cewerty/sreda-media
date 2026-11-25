@@ -1,0 +1,15 @@
+{{SREDA_SITE_URL}} {
+    root * /srv/sreda/current
+    encode gzip zstd
+    file_server
+
+    handle_errors {
+        rewrite * /404.html
+        file_server
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

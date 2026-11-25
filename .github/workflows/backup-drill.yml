@@ -1,0 +1,25 @@
+name: Backup drill
+
+# Ежедневная репетиция backup/restore во временном каталоге. Только DRY_RUN,
+# никаких внешних систем и реальных бэкапов. Не входит в обязательный статус ci.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup-drill:
+    name: Репетиция бэкапа (DRY_RUN)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+      - name: Run backup drill
+        run: just backup-drill

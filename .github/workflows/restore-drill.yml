@@ -1,0 +1,52 @@
+name: Restore drill (non-blocking)
+
+# Еженедельная репетиция восстановления CMS API. Не входит в обязательный ci.
+on:
+  schedule:
+    - cron: '41 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    name: PostgreSQL restore drill
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: sreda
+          POSTGRES_USER: sreda
+          POSTGRES_PASSWORD: sreda
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sreda -d sreda"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3.1.0
+        with:
+          just-version: v1.59.0
+      - name: Create test dump, drop table and restore
+        continue-on-error: true
+        env:
+          PGPASSWORD: sreda
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U sreda -d sreda -c \
+            "CREATE TABLE IF NOT EXISTS restore_drill(id serial PRIMARY KEY, marker text); \
+             INSERT INTO restore_drill(marker) VALUES ('drill-ok');"
+          pg_dump -h 127.0.0.1 -U sreda -d sreda -t restore_drill | gzip -9 > /tmp/drill.sql.gz
+          psql -h 127.0.0.1 -U sreda -d sreda -c 'DROP TABLE restore_drill;'
+          gunzip -c /tmp/drill.sql.gz | psql -h 127.0.0.1 -U sreda -d sreda -v ON_ERROR_STOP=1
+          test "$(psql -h 127.0.0.1 -U sreda -d sreda -tAc 'SELECT marker FROM restore_drill LIMIT 1')" = 'drill-ok'
+      - name: CMS API gate after restore
+        continue-on-error: true
+        working-directory: apps/cms-api
+        run: uv sync --frozen && UV_NO_SYNC=1 just check

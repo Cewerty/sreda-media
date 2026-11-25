@@ -1,0 +1,73 @@
+name: Supply chain (non-blocking)
+
+# Проверки зависимостей и SBOM. НЕ входят в обязательный статус ci:
+# аудиты могут подняться из-за нового advisory и не должны блокировать PR.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  supply-chain:
+    name: deps audit + SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12.23.0
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.2'
+          cache: pnpm
+      - name: Setup uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+      - name: pnpm audit
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
+      - name: Export Python requirements
+        run: uv export --frozen --no-hashes --format requirements-txt > requirements-audit.txt
+      - name: pip-audit
+        continue-on-error: true
+        run: uvx --from pip-audit==2.10.1 pip-audit -r requirements-audit.txt
+      - name: Docker Compose config
+        # Синтетическое значение только для валидации на чистом runner.
+        # Продакшен-требования к секретам не ослабляются: .env не создаётся.
+        env:
+          GRAFANA_ADMIN_PASSWORD: synthetic-ci-only
+        run: |
+          for f in deploy/*/docker-compose.yml; do
+            [ -f "$f" ] || continue
+            docker compose -f "$f" --profile logs --profile sql --profile errors config --quiet
+          done
+      # Hadolint: корневого Dockerfile в репозитории нет; шаг вернём вместе с Dockerfile.
+      - name: Build SBOM
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: spdx-json
+          output: sbom.spdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-spdx-json
+          path: sbom.spdx.json
+          if-no-files-found: error
+      - name: Trivy filesystem scan
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: '0'

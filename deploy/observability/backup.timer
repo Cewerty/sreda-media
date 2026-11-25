@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Sreda Media observability backup
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+Unit=backup.service
+
+[Install]
+WantedBy=timers.target

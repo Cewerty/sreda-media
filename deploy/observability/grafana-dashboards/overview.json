@@ -1,0 +1,65 @@
+{
+  "uid": "sreda-overview",
+  "title": "Sreda — обзор",
+  "tags": ["sreda", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Доступность (node_exporter up)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "up{job=\"node\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "max": 1, "min": 0 },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "Логи Caddy",
+      "gridPos": { "h": 18, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "Loki" },
+          "expr": "{job=\"caddy\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Последние выкладки",
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "ObservabilitySQL" },
+          "rawSql": "SELECT started_at, revision, action, outcome FROM deploy_events ORDER BY started_at DESC LIMIT 20",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "options": { "showHeader": true }
+    }
+  ],
+  "time": { "from": "now-24h", "to": "now" }
+}

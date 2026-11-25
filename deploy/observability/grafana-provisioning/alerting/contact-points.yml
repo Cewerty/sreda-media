@@ -1,0 +1,15 @@
+# Алерты подготовлены, но НЕ активны, пока нет сайта и тестового адреса (PR #16, Q-1).
+# Секреты задаются только переменными окружения на VPS; в репозитории заглушек нет.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: sreda-telegram
+    receivers:
+      - uid: sreda-telegram
+        type: telegram
+        disableResolveMessage: false
+        settings:
+          chatid: ${GRAFANA_TELEGRAM_CHAT_ID}
+        secure_settings:
+          bottoken: ${GRAFANA_TELEGRAM_BOT_TOKEN}

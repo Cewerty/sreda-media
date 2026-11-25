@@ -1,0 +1,9 @@
+[Unit]
+Description=Sreda Media observability backup (PostgreSQL + Grafana)
+Documentation=file:/srv/sreda/docs/runbook.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/sreda
+EnvironmentFile=-/etc/sreda/observability-backup.env
+ExecStart=/usr/bin/env bash /srv/sreda/scripts/backup-observability.sh

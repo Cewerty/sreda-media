@@ -1,0 +1,26 @@
+name: Alert drill (non-blocking)
+
+# Репетиция provisioning алертов по расписанию. Не включает правила и не шлёт
+# уведомления: правила остаются с enabled=false до PR #16 и Q-1.
+on:
+  schedule:
+    - cron: '47 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  alert-drill:
+    name: Check alert rules
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+      - name: Drill
+        run: just alert-drill

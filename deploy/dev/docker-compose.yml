@@ -1,0 +1,66 @@
+# Локальный контур наблюдаемости для разработчиков (issue #14).
+# Не конфликтует с продакшен-стеком: высокие порты и отдельные volume.
+# Продакшен-файл deploy/observability/docker-compose.yml НЕ трогается.
+#
+#   GRAFANA_ADMIN_PASSWORD=dev-only docker compose -f deploy/dev/docker-compose.yml up -d
+#
+# Порты: Grafana 127.0.0.1:13000, Loki 127.0.0.1:13100, Alloy 127.0.0.1:13345.
+# В контур НЕ монтируются /var/log/caddy и /var/lib/docker/containers —
+# читаются только примеры логов из docs/examples/logs.
+
+name: sreda-observability-dev
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  loki:
+    image: grafana/loki:3.5.5
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ../observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-dev-data:/loki
+    ports:
+      - "127.0.0.1:13100:3100"
+    logging: *default-logging
+
+  alloy:
+    image: grafana/alloy:v1.10.1
+    restart: unless-stopped
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - ./alloy-config.dev.alloy:/etc/alloy/config.alloy:ro
+      - ../../docs/examples/logs:/var/log/sreda-dev:ro
+      - alloy-dev-data:/var/lib/alloy/data
+    ports:
+      - "127.0.0.1:13345:12345"
+    depends_on:
+      - loki
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Для dev-стека задайте GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://127.0.0.1:13000
+    volumes:
+      - grafana-dev-data:/var/lib/grafana
+      - ../observability/grafana-provisioning:/etc/grafana/provisioning:ro
+      - ../observability/grafana-dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:13000:3000"
+    depends_on:
+      - loki
+    logging: *default-logging
+
+volumes:
+  loki-dev-data:
+  alloy-dev-data:
+  grafana-dev-data:

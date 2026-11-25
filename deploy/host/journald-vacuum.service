@@ -1,0 +1,7 @@
+[Unit]
+Description=Vacuum old journal entries
+Documentation=man:journalctl(1)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/journalctl --vacuum-size=500M --vacuum-time=7d
