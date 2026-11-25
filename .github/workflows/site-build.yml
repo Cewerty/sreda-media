@@ -33,4 +33,9 @@ jobs:
         uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
       - name: Prepare artifact signature (non-blocking)
         continue-on-error: true
-        run: ./scripts/sign-artifact.sh dist
+        run: |
+          if [ -d dist ]; then
+            ./scripts/sign-artifact.sh dist
+          else
+            echo "dist ещё нет (PR #16): подпись артефакта пропущена"
+          fi
