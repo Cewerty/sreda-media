@@ -57,12 +57,12 @@
 | `check-slo` | `just verify` | Сверка `docs/slo.md`, `slo.json`, дашборда и выключенных правил алертов. |
 | `check-runbook` | `just verify` | Команды `just` и `scripts/*` в bash-блоках `docs/*.md` сверены с репозиторием. |
 | `audit-workflows` | `just verify` | SHA-пины внешних GitHub Actions в workflow. |
-| `audit-hardening` | `just verify` | Да | Права workflow, persist-credentials, отсутствие github.event.* в run:. |
-| `check-alert-runbooks` | `just verify` | Да | Каждое правило алерта ссылается на существующий якорь в runbook. |
+| `audit-hardening` | `just verify` (обязательно) | Права workflow, persist-credentials, отсутствие github.event.* в run:. |
+| `check-alert-runbooks` | `just verify` (обязательно) | Каждое правило алерта ссылается на существующий якорь в runbook. |
 | `doctor` | Отдельно | Справка по инструментам, всегда exit 0; ничего не включает. |
 | `dr-drill` | Отдельно | DR-репетиция во временном каталоге, без `/srv` и systemd. |
 | `check-github-policy` | Отдельно, read-only | Только чтение защиты `main`; GitHub не меняется. |
-| `release-manifest` | `workflow_dispatch` / вручную | Нет | Манифест артефакта как код, без подписи и выкладки. |
+| `release-manifest` | Вручную, вне `verify` и CI | Манифест артефакта как код, без подписи и выкладки. |
 
 Все проверки подготовлены, но ничего не включают в прод: правила алертов
 остаются выключенными, выкладка и включение мониторов — отдельные решения после
