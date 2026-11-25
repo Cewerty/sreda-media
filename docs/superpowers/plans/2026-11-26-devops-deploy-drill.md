@@ -219,6 +219,8 @@ jobs:
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
       - name: Run deploy drill
+        env:
+          JUST: just
         run: just deploy-drill
 ```
 

@@ -1,0 +1,44 @@
+name: Deploy drill (non-blocking)
+
+# Сквозная локальная репетиция выкладки на чистом runner.
+# Не входит в обязательный ci, не публикует и не выкладывает артефакт.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/deploy-drill.sh
+      - scripts/deploy-static.sh
+      - scripts/stage-site.sh
+      - scripts/sign-artifact.sh
+      - scripts/verify-artifact.sh
+      - justfile
+      - .github/workflows/deploy-drill.yml
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Local deploy rehearsal
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.2'
+          cache: pnpm
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+      - name: Run deploy drill
+        env:
+          JUST: just
+        run: just deploy-drill
