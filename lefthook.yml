@@ -1,0 +1,20 @@
+# Lefthook — быстрый Git hooks manager на Go (ставится из uv dev-группы).
+# Установка один раз: cd apps/cms-api && just hooks
+# Gate вручную и в CI: just check
+#
+# Автоустановки через pnpm/npm `prepare` намеренно нет: она ломала бы CI Косте
+# и упиралась в allowBuilds/exFAT (см. docs/dhr-transfer.md §6). Хуки ставятся
+# явной командой и не являются обязательными для сборки.
+
+pre-commit:
+  commands:
+    api-lint:
+      root: apps/cms-api
+      glob: "apps/cms-api/**/*.py"
+      run: just lint
+
+pre-push:
+  commands:
+    api-check:
+      root: apps/cms-api
+      run: just check

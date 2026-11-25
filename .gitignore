@@ -1,3 +1,37 @@
+# Python
+__pycache__/
+*.py[oc]
+.venv/
+*.egg-info/
+build/
+dist/
+.ruff_cache/
+.pytest_cache/
+
+# Django
+db.sqlite3
+media/
+# STATIC_ROOT: результат collectstatic, генерируется при сборке (ADR 0015)
+apps/cms-api/static/
+
+# Node
 node_modules/
-/apps/site/.astro/
-/apps/site/dist/
+*.tsbuildinfo
+coverage/
+
+# just contract: временный экспорт схемы
+apps/cms-api/openapi.json.tmp
+
+# Окружение и секреты (NFR-SEC-03)
+.env
+.env.*
+!.env.example
+!apps/cms-api/.env.deploy-check
+apps/site/.astro/
+
+# Редактор и ОС
+.vscode/
+.idea/
+.DS_Store
+*.local
+.aider*

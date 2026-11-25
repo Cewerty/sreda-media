@@ -1,0 +1,16 @@
+name: Setup just
+description: Устанавливает just — единую точку входа для локальных проверок и CI.
+
+inputs:
+  just-version:
+    description: Версия just (формат vX.Y.Z, как у extractions/setup-just).
+    required: false
+    default: v1.59.0
+
+runs:
+  using: composite
+  steps:
+    - name: Install just
+      uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3.1.0
+      with:
+        just-version: ${{ inputs.just-version }}

@@ -1,0 +1,12 @@
+[project]
+name = "sreda-media"
+version = "0.0.0"
+description = "Монорепозиторий Sreda Media: сайт, микро-CMS и бот (ADR 0007)"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/cms-api"]

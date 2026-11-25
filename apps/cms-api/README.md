@@ -1,0 +1,118 @@
+# `cms-api` — микро-CMS Sreda Media
+
+Django + django-modern-rest (DMR) + Dishka. Часть монорепозитория (ADR 0007).
+Продуктовые требования — [`docs/prd.md`](../../docs/prd.md), архитектурные решения —
+[`docs/adr/`](../../docs/adr/), границы приложений — ADR 0011.
+
+> Основа перенесена из `Cewerty/Digital-hire-reports` @
+> `ab3a3ca9d74f896405f0181d2c412c7e37b095c7` (issue #24). Предметная область
+> донора (`apps/users` с парольным flow, роли `member|admin`) — временная и
+> заменяется в #25 по ADR 0009/0010. Карта переноса — [`docs/dhr-transfer.md`](../../docs/dhr-transfer.md).
+
+## Запуск
+
+Python 3.14 (`.python-version`), менеджер — [uv](https://docs.astral.sh/uv/).
+Workspace объявлен в корневом `pyproject.toml`, поэтому зависимости ставятся
+из корня монорепозитория:
+
+```bash
+uv sync --all-packages     # важно: без --all-packages корневой виртуальный
+                           # проект не тянет зависимости cms-api
+```
+
+Скопируй `apps/cms-api/.env.example` в `apps/cms-api/.env` и запусти доступный
+PostgreSQL 18. Дальше команды выполняются из `apps/cms-api`:
+
+```bash
+uv run manage.py check
+uv run manage.py migrate --plan
+uv run manage.py migrate
+uv run manage.py collectstatic --noinput
+uv run manage.py runserver
+```
+
+## Конфигурация и диагностика
+
+Переменные процесса имеют приоритет над `.env`. При `DJANGO_ENV=production`
+в окружении процесса приложение читает конфигурацию только из окружения.
+Укажи `DJANGO_DEBUG=false`,
+собственный `DJANGO_SECRET_KEY` (от 50 символов), `DJANGO_ALLOWED_HOSTS` через
+запятую и `RELEASE` (тег или SHA). Также задай `POSTGRES_HOST`, `POSTGRES_PORT`,
+`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, SMTP-бэкенд
+`EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT` и `DEFAULT_FROM_EMAIL`. Остальные
+параметры SMTP описаны в `.env.example`.
+
+Из выбранного образа перед миграцией или переключением версии выполни
+`uv run manage.py check --deploy --fail-level WARNING` с production-окружением.
+Ошибка bootstrap укажет имя параметра и нарушенное правило без значения секрета.
+`just deploy-strict` использует синтетический `.env.deploy-check` для локального
+gate и CI. Доступность зависимостей после запуска проверяет `/readyz`.
+
+CMS возвращает `X-Correlation-ID` в HTTP-ответе. Найди этот UUID в поле
+`correlation_id` события `request_finished` в stdout процесса.
+`LOG_LEVEL` управляет остальными прикладными сообщениями (по умолчанию INFO).
+[Спецификация и пример события](../../docs/specs/cms-runtime-config-and-logging.md).
+
+## Статика
+
+`STATIC_ROOT = apps/cms-api/static/` — **генерируемый** артефакт `collectstatic`,
+в Git не хранится (`.gitignore`). Исходники статики приезжают из установленных
+пакетов (`django.contrib.admin`, `dmr`), поэтому папка полностью восстанавливается:
+
+```bash
+uv run manage.py collectstatic --noinput
+```
+
+- `DEBUG=True` + `runserver`: статика отдаётся finders'ами, `collectstatic` не обязателен.
+- `DEBUG=False`: WhiteNoise (`CompressedStaticFilesStorage`) раздаёт из `STATIC_ROOT`,
+  поэтому `collectstatic` — обязательный шаг сборки/выпуска (ADR 0015 §1).
+
+Проверено в обоих режимах: `/admin/login/`, `/docs/swagger/`, `/docs/openapi.json/`
+и все их ассеты отвечают 200.
+
+## Агентские скиллы DMR
+
+В репозиторий добавлены официальные Agent Skills `django-modern-rest`, которые
+поставляются внутри самого пакета: `.agents/skills/` в корне (6 скиллов,
+34 файла, версия 0.16.0 из `uv.lock`). Основной — `$dmr` для написания и ревью
+DMR-кода. Происхождение, лицензия MIT, порядок обновления и нюанс с `--copy` на
+exFAT — в `.agents/skills/README.md`; правила применения с учётом наших ADR —
+в [`AGENTS.md`](AGENTS.md).
+
+Официальная установка: `uvx library-skills --all -y --copy --no-tool-skill`
+(из корня, после `uv sync --all-packages`).
+
+## Health / readiness
+
+Пробы `cms-api` (NFR-OPS-04, ADR 0006 §1, ADR 0015 §4). Спецификация и критерии
+приёмки — [`docs/specs/ops-04-health-readiness.md`](../../docs/specs/ops-04-health-readiness.md).
+
+| | `/healthz` | `/readyz` |
+| --- | --- | --- |
+| Проверяет | живой Django-процесс | используемые зависимости (в 0.2 — БД) |
+| Вызовы БД / внешних API | **нет** | да, с ограниченным таймаутом |
+| Успех / отказ | 200 / — | 200 / **503** |
+
+Пути в корне, вне `/api/` и OpenAPI; пробы анонимны, auth/CSRF не требуются.
+Тела ответов не содержат DSN, путей и raw exception. Проверка media storage
+подключается в 0.4 (EDIT-02), heartbeat worker/scheduler — отдельная работа #14.
+`HealthProvider` зарегистрирован в единственном composition root
+`apps/core/apps.py` (после PR #42 `config/asgi.py` контейнер не собирает).
+
+```bash
+curl -i http://127.0.0.1:8000/healthz   # 200 {"status":"ok"}
+curl -i http://127.0.0.1:8000/readyz   # 200 ... | 503 {"detail":[...]}
+```
+
+## Что пока не сделано
+
+Это перенесённая основа, а не готовый CMS. Открыто и вынесено в отдельные задачи:
+
+- **#25** — предметная область: `Content`/`ContentKind`/payload (ADR 0010), статусы
+  (ADR 0004 §2), роли PRD, `ProviderIdentity` и вход через Telegram без паролей
+  (ADR 0009). Текущие `POST /api/v1/users/` и `PUT /api/v1/users/<id>/` создают
+  пользователя с паролем и меняют пароль — это донорский прототип, не AUTH-01…04.
+- **#26** — расширение тестов Django и наполнение `tach.toml` (ADR 0011).
+  CMS workflow выполняет `uv sync --frozen` и `just ci` с PostgreSQL.
+- `/healthz` и `/readyz` реализованы (#28). Таймауты PostgreSQL и общий бюджет
+  readiness задаются через окружение (#41).

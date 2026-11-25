@@ -1,0 +1,65 @@
+# Quality gate apps/cms-api.
+# Запуск из apps/cms-api: `just <рецепт>`. Из корня: `just -f apps/cms-api/justfile <рецепт>`.
+# Костя переносит эти рецепты в общий justfile монорепозитория, не переписывая.
+
+# Windows: cmd, а не PowerShell — `>` в PS 5.1 пишет UTF-16 и ломает contract-diff.
+set shell := ["sh", "-cu"]
+set windows-shell := ["cmd.exe", "/c"]
+
+default: check
+
+# --- Quality gate для локального запуска и GitHub Actions ---
+check: lint types django deploy-strict tests
+
+ci: check
+
+# --- Отдельные слои ---
+lint:
+    uv run ruff check --no-fix .
+    uv run ruff format --check .
+
+format:
+    uv run ruff format .
+
+types:
+    uv run pyright
+
+django:
+    uv run manage.py check
+    uv run manage.py makemigrations --check --dry-run
+
+hooks:
+    uv run lefthook install
+
+# --- Тесты: входят в check, не заглушка ---
+tests:
+    uv run pytest -q
+
+# --- Production-профиль: отдельный процесс со своим env, без реальных секретов ---
+# .env.deploy-check закоммичен и содержит только синтетические значения.
+# check --deploy не открывает соединений, поэтому боевые секреты не нужны.
+deploy-strict:
+    uv run --env-file .env.deploy-check manage.py check --deploy --fail-level WARNING
+
+# --- Не включены в ci: ждут своих задач, чтобы не ронять пайплайн ---
+
+# #25: границы модулей. tach.toml пока пуст.
+boundaries:
+    uv run tach check
+
+# Требует DJANGO_QUALITY_GATE=1 в окружении (подключает dev-app линтера).
+migrations-lint:
+    uv run manage.py lintmigrations
+
+# django-upgrade — кодмод, переписывает файлы. Только вручную.
+django-upgrade:
+    uv run django-upgrade --target-version 6.1 apps config
+
+# --- Контракт API: сверка схемы без генерации TS-клиента ---
+# Сначала один раз: just contract-baseline, затем закоммитить openapi.json.
+contract-baseline:
+    uv run manage.py dmr_export_schema config.urls:schema > openapi.json
+
+contract:
+    uv run manage.py dmr_export_schema config.urls:schema > openapi.json.tmp
+    git diff --no-index --exit-code openapi.json openapi.json.tmp
