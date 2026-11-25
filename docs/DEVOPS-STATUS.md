@@ -59,6 +59,8 @@
 | `audit-workflows` | `just verify` | SHA-пины внешних GitHub Actions в workflow. |
 | `audit-hardening` | `just verify` (обязательно) | Права workflow, persist-credentials, отсутствие github.event.* в run:. |
 | `check-alert-runbooks` | `just verify` (обязательно) | Каждое правило алерта ссылается на существующий якорь в runbook. |
+| `stage-site` | Отдельно | Копирует `apps/site/dist` в корневой `dist`; саму сборку не меняет. |
+| `check-site-artifact` | Gated deploy/provenance, отдельно | Проверяет `dist/index.html` и `dist/404.html`; 404 ждёт issue #5. |
 | `doctor` | Отдельно | Справка по инструментам, всегда exit 0; ничего не включает. |
 | `dr-drill` | Отдельно | DR-репетиция во временном каталоге, без `/srv` и systemd. |
 | `check-github-policy` | Отдельно, read-only | Только чтение защиты `main`; GitHub не меняется. |
@@ -117,13 +119,13 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
-| Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до слияния PR #16 и адреса Q-1: нет артефакта, флагов и QA-адреса | После PR #16/Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
+| Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до адреса Q-1: нет флагов, QA-адреса и подготовленного артефакта | После Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
 | Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
 | Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После PR #16/Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
 
 ## Блокирующие зависимости
 
-- **PR #16** — минимальный Astro-сайт в `main`; без него `build-site` честно пропускается.
+- **PR #16** — минимальный Astro-сайт уже в `main`; `build-site` собирает его, а `stage-site` подготавливает корневой `dist`.
 - **Q-1 с Артёмом** — домен, DNS и тестовый адрес выкладки.
 - **ENABLE_DEPLOY / ENABLE_DOCS_PAGES** — флаги включаются отдельно, не «по умолчанию».
 - **ADR 0006** — финальное решение о хостинге остаётся за Ильёй; включение метрик (`--profile logs`) дополнительно ждёт ресурсного gate §4.

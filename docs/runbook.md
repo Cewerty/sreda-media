@@ -33,14 +33,17 @@
 
 ```bash
 uvx --from rust-just just build-site
+uvx --from rust-just just stage-site
+uvx --from rust-just just check-site-artifact
 ```
 
-Команда проверяет контракт ADR 0014, валидирует материалы и медиа (`just check-content`) и собирает Astro, когда `apps/site` присутствует в main (PR #16). В CI те же шаги выполняются через `site-build` и итоговый статус `ci`.
+Команда проверяет контракт ADR 0014, валидирует материалы и медиа (`just check-content`) и собирает Astro, который теперь есть в `main` (PR #16). `stage-site` копирует `apps/site/dist` в корневой `dist`; `check-site-artifact` проверяет `index.html` и `404.html`. До закрытия issue #5 последний чекер сообщает об отсутствии страницы 404 — это зона фронтенда, а не DevOps. В CI те же шаги выполняются через `site-build`, итоговый статус `ci`.
 
 ## 3. Выкладка
 
 ```bash
-just build-site
+just stage-site
+just check-site-artifact
 scripts/deploy-static.sh deploy dist /srv/sreda/releases /srv/sreda/current
 scripts/deploy-static.sh verify https://sreda.sielom.ru
 ```
