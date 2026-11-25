@@ -246,3 +246,11 @@ docs-serve:
 # Read-only проверка защиты main (требует gh и доступ).
 check-github-policy:
     python3 scripts/check_branch_policy.py
+
+# Read-only проверка новых коммитов: subject, тело и Refs.
+check-commits:
+    python3 scripts/check_commit_messages.py
+
+# Read-only отчёт о гигиене открытых issue; ничего не меняет в GitHub.
+check-issues:
+    python3 scripts/check_issue_hygiene.py
