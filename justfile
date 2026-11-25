@@ -202,3 +202,7 @@ sign-artifact path:
 # Локальный просмотр документации MkDocs (публикация всё ещё под ENABLE_DOCS_PAGES).
 docs-serve:
     uvx --from mkdocs-material==9.8.2 mkdocs serve
+
+# Read-only проверка защиты main (требует gh и доступ).
+check-github-policy:
+    python3 scripts/check_branch_policy.py
