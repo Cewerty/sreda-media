@@ -274,3 +274,7 @@ sre-digest:
 # Нормализация вывода Astro в корневой dist для подписи и выкладки.
 stage-site:
     bash scripts/stage-site.sh
+
+# Read-only проверка контракта артефакта; не входит в verify и ci.
+check-site-artifact:
+    python3 scripts/check_site_artifact.py
