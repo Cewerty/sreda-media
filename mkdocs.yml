@@ -84,4 +84,5 @@ nav:
       - 'DevOps hardening: After address': superpowers/specs/2026-11-25-devops-hardening-after-address-design.md
       - 'DevOps hardening: CI and readiness': superpowers/specs/2026-11-25-devops-ci-hardening-and-readiness-design.md
       - 'DevOps readiness and hygiene': superpowers/specs/2026-11-25-devops-readiness-and-hygiene-design.md
+      - 'DevOps deploy and release audit': superpowers/specs/2026-11-25-devops-deploy-and-release-audit-design.md
       - Шаблон спецификации: specs/_template.md
