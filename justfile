@@ -270,3 +270,7 @@ chaos-drill:
 # Демо-дайджест по фиксированным локальным событиям, без сети и секретов.
 sre-digest:
     python3 scripts/log_digest.py
+
+# Нормализация вывода Astro в корневой dist для подписи и выкладки.
+stage-site:
+    bash scripts/stage-site.sh
