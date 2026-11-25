@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only проверка операционной политики: backup, ресурсы и логи."""
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -34,11 +35,13 @@ def main():
         slo = json.loads((OBS / "slo.json").read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         fail_all([f"slo.json: не удалось прочитать: {exc}"])
+    if not isinstance(slo, dict):
+        fail_all(["slo.json: ожидается JSON-объект"])
     if slo.get("backup_freshness_hours") != 24:
         errors.append("slo.json: backup_freshness_hours должен быть 24")
 
     restore = read("scripts/restore-observability.sh")
-    if "CONFIRM=1" not in restore:
+    if not re.search(r'\[\s*"\$CONFIRM"\s*=\s*"1"\s*\]', restore):
         errors.append("restore-observability.sh: нет guard CONFIRM=1")
 
     env = read("deploy/observability/.env.example")
@@ -67,22 +70,37 @@ def main():
         errors.append("rules.yml: нет правила sreda-backup-stale")
     else:
         labels = stale.get("labels")
-        level = labels.get("enabled", "false") if isinstance(labels, dict) else "false"
-        if str(level).lower() != "false":
+        if not isinstance(labels, dict) or "enabled" not in labels or str(labels.get("enabled")).lower() != "false":
             errors.append("sreda-backup-stale: правило должно оставаться enabled=false")
 
     budget_path = ROOT / "docs/resource-budget.md"
     if not budget_path.is_file():
         errors.append("нет docs/resource-budget.md")
     else:
-        budget = budget_path.read_text(encoding="utf-8")
+        try:
+            budget = budget_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            fail_all([f"resource-budget.md: не удалось прочитать: {exc}"])
         for needle in ("500", "20%", "ADR 0006", "idle", "peak"):
             if needle not in budget:
                 errors.append(f"resource-budget.md: нет '{needle}'")
 
     compose = read("deploy/observability/docker-compose.yml")
-    if "profiles:" not in compose or "logs" not in compose:
-        errors.append("docker-compose.yml: метричные сервисы должны оставаться под профилем logs")
+    try:
+        compose_yaml = yaml.safe_load(compose)
+    except yaml.YAMLError as exc:
+        fail_all([f"docker-compose.yml: не удалось прочитать YAML: {exc}"])
+    services = compose_yaml.get("services") if isinstance(compose_yaml, dict) else None
+    if not isinstance(services, dict):
+        fail_all(["docker-compose.yml: нет services"])
+    for name in ("prometheus", "node-exporter", "blackbox-exporter"):
+        service = services.get(name)
+        if not isinstance(service, dict):
+            errors.append(f"docker-compose.yml: нет сервиса {name}")
+            continue
+        profiles = service.get("profiles")
+        if not isinstance(profiles, list) or "logs" not in profiles:
+            errors.append(f"{name}: сервис должен быть под профилем logs")
     if "DJANGO_DEBUG=1" in compose:
         errors.append("docker-compose.yml: DEBUG не должен включаться по умолчанию")
 
