@@ -70,6 +70,7 @@
 | `check-image-pins` | `just verify` | Образы зафиксированы; `latest` запрещён кроме GLITCHTIP. |
 | `check-ops-policy` | `just verify` | Backup 24ч, ресурсный gate ADR 0006 §4, дефолты логирования. |
 | `release-readiness` | Вручную, вне `verify` и CI | Таблица готовности с вердиктом `READY`/`NO-GO`; ничего не включает. |
+| `deploy-drill` | Отдельно, dispatch + PR paths | Полная локальная репетиция выкладки во временном каталоге, без `/srv` и гейтов. |
 | `check-commits` | Вручную, вне `verify` и CI | Subject, тело и `Refs:` новых коммитов. |
 | `check-issues` | Вручную, вне `verify` и CI | Read-only отчёт о карточках без label/assignee и stale. |
 
@@ -119,6 +120,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
+| `deploy-drill` | Репетиция не выкладывает на реальный адрес и не трогает прод | `just deploy-drill` локально; в CI — dispatch или PR по затронутым путям |
 | Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до адреса Q-1: нет флагов, QA-адреса и подготовленного артефакта | После Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
 | Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
 | Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
