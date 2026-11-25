@@ -128,6 +128,10 @@ verify-artifact path:
 release-manifest path:
     bash scripts/release-manifest.sh "{{path}}"
 
+# Read-only отчёт о готовности к выкладке; ничего не включает и не публикует.
+release-readiness:
+    uv run --with pyyaml==6.0.4 python scripts/release_readiness.py
+
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:
     uv run --project apps/cms-api ruff check apps/cms-api
