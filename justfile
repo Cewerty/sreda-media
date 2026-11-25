@@ -120,6 +120,10 @@ pre-commit:
 verify-artifact path:
     bash scripts/verify-artifact.sh "{{path}}"
 
+# Манифест релиза как код; не входит в verify и CI.
+release-manifest path:
+    bash scripts/release-manifest.sh "{{path}}"
+
 # Линтеры кода: Python (ruff) и JS/TS (Biome).
 lint:
     uv run --project apps/cms-api ruff check apps/cms-api
