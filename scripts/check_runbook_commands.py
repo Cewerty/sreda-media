@@ -5,9 +5,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FENCE = re.compile(r"```(?:bash|sh)\s*\n(.*?)```", re.S | re.I)
-JUST = re.compile(r"(?<![\w-])just\s+([A-Za-z0-9_-]+)")
+# Имя рецепта начинается с буквы: CLI-флаги (--list, -f) не рецепты.
+JUST = re.compile(r"(?<![\w-])just\s+([A-Za-z][A-Za-z0-9_/-]*)")
 SCRIPT = re.compile(r"\bscripts/([A-Za-z0-9_./-]+\.(?:sh|py))\b")
-JUST_RECIPE = re.compile(r"^([A-Za-z0-9_-]+)(?:\s+[^:]*)?:", re.M)
+# (?!=) не даёт `set shell := ...` стать мнимым рецептом.
+JUST_RECIPE = re.compile(r"^([A-Za-z0-9_-]+)(?:\s+[^:]*)?:(?!=)", re.M)
 
 
 def fail(msg: str) -> None:
@@ -22,7 +24,7 @@ def main() -> None:
     checked_scripts = 0
     for doc in sorted((ROOT / "docs").rglob("*.md")):
         # Планы описывают ещё не созданные файлы и рецепты — не runbook.
-        if "superpowers/plans" in doc.relative_to(ROOT).as_posix():
+        if doc.relative_to(ROOT).parts[:3] == ("docs", "superpowers", "plans"):
             continue
         for block in FENCE.findall(doc.read_text(encoding="utf-8", errors="replace")):
             for line in block.splitlines():
