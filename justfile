@@ -100,6 +100,10 @@ docs-build:
 smoke url:
     SREDA_SMOKE_MARKER="${SREDA_SMOKE_MARKER:-}" ./scripts/smoke-static.sh "{{url}}"
 
+# Синтетическая проверка по SREDA_SITE_URL, не в verify.
+synthetic:
+    bash scripts/synthetic-check.sh
+
 # Локальный предпрогон перед коммитом: только чтение, хуки не ставит.
 pre-commit:
     bash scripts/pre-commit.sh
