@@ -29,6 +29,8 @@ jobs:
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
       - name: Build site
         run: just build-site
+      - name: Stage site artifact
+        run: just stage-site
       - name: Install cosign
         uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
       - name: Prepare artifact signature (non-blocking)

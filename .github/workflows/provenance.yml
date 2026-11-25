@@ -31,10 +31,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
-      - name: Build static artifact
-        run: just build-site
-      - name: Check artifact directory
-        run: test -d dist
+      - name: Stage static artifact
+        run: just stage-site
+      - name: Check site artifact
+        run: just check-site-artifact
       - name: Install cosign
         uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
       - name: Prepare hash and signature

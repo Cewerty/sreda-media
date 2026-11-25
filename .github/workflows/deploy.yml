@@ -42,8 +42,10 @@ jobs:
             echo "apps/site ещё нет (PR #16): выкладка не выполняется"
             exit 1
           fi
-      - name: Build static artifact
-        run: just build-site
+      - name: Stage static artifact
+        run: just stage-site
+      - name: Check site artifact
+        run: just check-site-artifact
       - name: Prepare hash and optional signature
         run: ./scripts/sign-artifact.sh dist
       - name: Verify artifact hash and signature
