@@ -31,6 +31,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+      - name: Build static artifact
+        run: just build-site
       - name: Stage static artifact
         run: just stage-site
       - name: Check site artifact

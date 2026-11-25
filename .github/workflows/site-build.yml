@@ -39,5 +39,5 @@ jobs:
           if [ -d dist ]; then
             ./scripts/sign-artifact.sh dist
           else
-            echo "dist ещё нет (PR #16): подпись артефакта пропущена"
+            echo "dist не создан: подпись артефакта пропущена"
           fi

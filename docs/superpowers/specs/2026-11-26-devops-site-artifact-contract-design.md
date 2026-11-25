@@ -82,8 +82,8 @@ just build-site
 ### Workflow
 
 - `.github/workflows/site-build.yml`: после шага `Build site` добавляется шаг `Stage site artifact` с `just stage-site`. Существующий шаг подписи остаётся `continue-on-error: true`, но guard `if [ -d dist ]` теперь проходит, и подпись подготавливается по-настоящему.
-- `.github/workflows/deploy.yml`: заменяет `just build-site` на `just stage-site`; перед `Prepare hash and optional signature` добавляется `just check-site-artifact`; guard `vars.ENABLE_DEPLOY == 'true'` и `dry_run` остаются прежними.
-- `.github/workflows/provenance.yml`: та же замена и тот же чекер перед подписью; guard `vars.ENABLE_PROVENANCE == 'true' && github.ref == 'refs/heads/main'` остаётся.
+- `.github/workflows/deploy.yml`: шаг `Build static artifact` (`just build-site`) сохраняется, после него добавляется `Stage static artifact` (`just stage-site`); `apps/site/dist` отсутствует в чистом раннере, поэтому одна staging без сборки оборвётся до проверки артефакта. Перед сборкой добавлены setup pnpm, setup Node 22 и `pnpm install --frozen-lockfile` с теми же пинами, что и в `site-build.yml`. Перед `Prepare hash and optional signature` добавляется `just check-site-artifact`; guard `vars.ENABLE_DEPLOY == 'true'` и `dry_run` остаются прежними.
+- `.github/workflows/provenance.yml`: так же сохраняется `Build static artifact`, после него добавляется `Stage static artifact` и тот же чекер перед подписью; guard `vars.ENABLE_PROVENANCE == 'true' && github.ref == 'refs/heads/main'` остаётся.
 - YAML для `run:` пишется block scalar либо безопасной строкой без `#` посередине, чтобы shellcheck в CI не ловил незакрытую кавычку — учёт замечания Ильи по `lighthouse.yml`.
 
 ## Обработка ошибок

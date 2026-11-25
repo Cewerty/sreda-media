@@ -334,7 +334,30 @@ Do not change the following `Prepare artifact signature (non-blocking)` step: it
 
 - [ ] **Step 2: Patch deploy.yml**
 
-Find this exact block in `.github/workflows/deploy.yml`:
+Add pnpm/Node/install before the build, using the exact pins from `site-build.yml`. Find this exact block in `.github/workflows/deploy.yml`:
+
+```yaml
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+```
+
+Replace with:
+
+```yaml
+      - name: Setup pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - name: Setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.2'
+          cache: pnpm
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Setup just
+        uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
+```
+
+Then find this exact block in `.github/workflows/deploy.yml`:
 
 ```yaml
       - name: Build static artifact
@@ -346,6 +369,8 @@ Find this exact block in `.github/workflows/deploy.yml`:
 Replace with:
 
 ```yaml
+      - name: Build static artifact
+        run: just build-site
       - name: Stage static artifact
         run: just stage-site
       - name: Check site artifact
@@ -354,7 +379,7 @@ Replace with:
         run: ./scripts/sign-artifact.sh dist
 ```
 
-Keep `vars.ENABLE_DEPLOY == 'true'`, `dry_run` guard and Environment unchanged.
+Keep `vars.ENABLE_DEPLOY == 'true'`, `dry_run` guard and Environment unchanged. `just build-site` stays before `just stage-site`: `apps/site/dist` is gitignored and absent on a clean runner, so staging alone fails before the artifact check is reached.
 
 - [ ] **Step 3: Patch provenance.yml**
 
@@ -370,13 +395,15 @@ Find this exact block in `.github/workflows/provenance.yml`:
 Replace with:
 
 ```yaml
+      - name: Build static artifact
+        run: just build-site
       - name: Stage static artifact
         run: just stage-site
       - name: Check site artifact
         run: just check-site-artifact
 ```
 
-Keep guard `vars.ENABLE_PROVENANCE == 'true' && github.ref == 'refs/heads/main'`, permissions `contents: read`, `id-token: write`, `attestations: write`.
+Keep guard `vars.ENABLE_PROVENANCE == 'true' && github.ref == 'refs/heads/main'`, permissions `contents: read`, `id-token: write`, `attestations: write`. `just build-site` stays before `just stage-site` for the same clean-runner reason.
 
 - [ ] **Step 4: Verify workflow syntax and policy**
 
