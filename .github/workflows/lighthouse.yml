@@ -27,4 +27,5 @@ jobs:
           echo "lighthouse: сайт появился, сборка и аудит требуют отдельного адреса"
       - name: Lighthouse (pending address)
         continue-on-error: true
-        run: echo "lighthouse/a11y/SEO включается после PR #16 и тестового адреса (Q-1)"
+        run: >-
+          echo "lighthouse/a11y/SEO включается после PR #16 и тестового адреса (Q-1)"
