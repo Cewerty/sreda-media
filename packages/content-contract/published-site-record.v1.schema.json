@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Опубликованный материал сайта Sreda Media (0.1)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "slug",
+    "title",
+    "rubric_id",
+    "author_ids",
+    "published_at",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/text"
+    },
+    "kind": {
+      "enum": [
+        "article",
+        "video"
+      ]
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "title": {
+      "$ref": "#/$defs/text"
+    },
+    "rubric_id": {
+      "$ref": "#/$defs/text"
+    },
+    "author_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cover": {
+      "$ref": "#/$defs/cover"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "properties": {
+        "kind": {
+          "const": "article"
+        },
+        "author_ids": {
+          "minItems": 1
+        },
+        "payload": {
+          "$ref": "#/$defs/article"
+        }
+      },
+      "required": [
+        "cover"
+      ]
+    },
+    {
+      "properties": {
+        "kind": {
+          "const": "video"
+        },
+        "payload": {
+          "$ref": "#/$defs/video"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "cover": {
+      "type": "object",
+      "required": [
+        "path",
+        "alt"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/text"
+        },
+        "alt": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "additionalProperties": false
+    },
+    "article": {
+      "type": "object",
+      "required": [
+        "markdown"
+      ],
+      "properties": {
+        "markdown": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "additionalProperties": false
+    },
+    "video": {
+      "type": "object",
+      "required": [
+        "url",
+        "description"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

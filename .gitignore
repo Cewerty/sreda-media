@@ -27,6 +27,7 @@ apps/cms-api/openapi.json.tmp
 .env.*
 !.env.example
 !apps/cms-api/.env.deploy-check
+apps/site/.astro/
 
 # Редактор и ОС
 .vscode/
