@@ -173,3 +173,9 @@ CONFIRM=1 just restore-obs <UTC-метка>
 - PR #16 — собираемый Astro-сайт в main.
 - #14 — мониторинг, уведомления, Grafana/Alloy/Loki, GlitchTip, backup/restore.
 - #41 — конфигурация Django для `deploy-strict` (относится к CMS, не к витрине).
+
+## Учебные репетиции
+
+`just chaos-twin <scenario>` и `just chaos-drill` — учебные smoke-имитации в отдельном Compose-проекте `sreda-chaos`: без портов, без `/srv`, без systemd и без включения алертов. Они не доказывают детектирование, доставку уведомлений или восстановление.
+
+`just sre-digest` — демо по фиксированному локальному файлу `docs/examples/logs/sreda-sample.jsonl`. Это не контракт входа и не анализ реальных логов: критерий релевантности и источник событий нужно определить отдельно.
