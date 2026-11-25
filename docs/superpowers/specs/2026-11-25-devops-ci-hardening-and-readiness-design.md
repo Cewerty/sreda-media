@@ -105,11 +105,11 @@ gated provenance и gated-дашборд. Новый этап закрывает
 ### Поток данных
 
 `check_slo.py` задаёт список `rule_uids` в `deploy/observability/slo.json`.
-Проверщик читает `rules.yml`, для каждого правила требует `runbook_url` вида
-`https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#<rule_uid>`
-и проверяет наличие якоря с этим `rule_uid` в `docs/runbook.md`. Также сверяет,
- что множество `rule_uid` в `rules.yml` совпадает с `slo.json`. Правила остаются
-`enabled: "false"`.
+Проверщик читает `rules.yml`: каждое правило обязано иметь `runbook_url` вида
+`https://github.com/Sreda-Media/sreda-media/blob/main/docs/runbook.md#<rule_uid>`,
+а в `docs/runbook.md` обязан существовать якорь с этим `rule_uid`. Дополнительно
+проверяется, что все три `rule_uid` из `slo.json` присутствуют в `rules.yml`.
+Правила остаются `enabled: "false"`.
 
 ### Обработка ошибок
 
