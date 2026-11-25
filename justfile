@@ -3,7 +3,7 @@
 set shell := ["bash", "-uc"]
 
 # Всё сразу: то, что обязательно в CI. Версия Ильи из PR #45 — авторитетная.
-verify: check check-logs check-alerts check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint workflows-lint secrets build-site
+verify: check check-logs check-alerts check-uptime check-host-config check-slo check-runbook audit-workflows docs-build install lint-web types test-web build-web api-check config-lint workflows-lint audit-hardening secrets build-site
     @echo "just verify: все проверки пройдены"
 
 # Зависимости чистого checkout (pnpm workspaces + uv workspace).
@@ -91,6 +91,10 @@ coverage: install
 # Ежедневная проверка относительных ссылок в docs/.
 link-check:
     python3 scripts/check_links.py
+
+# Политика безопасности workflow: права, checkout и run:.
+audit-hardening:
+    uv run --with pyyaml==6.0.4 python scripts/check_workflow_hardening.py
 
 # MkDocs strict-сборка во временном каталоге, без публикации в Pages.
 docs-build:

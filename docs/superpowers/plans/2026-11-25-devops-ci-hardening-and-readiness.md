@@ -47,13 +47,15 @@ ELEVATED_TOP = {
     "dependency-review.yml": {"pull-requests": "read"},
     "provenance.yml": {"id-token": "write", "attestations": "write"},
 }
-RUN_INJECTION = re.compile(r"\$\{\{\s*github\.event\.")
+RUN_INJECTION = re.compile(
+    r"\$\{\{\s*github(?:\.event|\[\s*['\"]event['\"]\s*\])(?:\.|\[)"
+)
 CHECKOUT_PREFIX = "actions/checkout@"
 
 
 def fail_all(errors):
     for error in errors:
-        print(f"FAIL: {error}")
+        print(f"FAIL: {error}", file=sys.stderr)
     raise SystemExit(1)
 
 
@@ -92,6 +94,8 @@ def check_file(path, errors):
             errors.append(f"{name}: permissions.contents должен быть read")
         allowed = {"contents": "read", **ELEVATED_TOP.get(name, {})}
         for scope, level in perms.items():
+            if scope == "contents":
+                continue
             if allowed.get(scope) != level:
                 errors.append(f"{name}: неожиданные права {scope}: {level}")
 
@@ -115,7 +119,7 @@ def check_file(path, errors):
     events = data.get("on")
     if events is None:
         events = data.get(True)
-    if isinstance(events, dict) and "pull_request_target" in events:
+    if isinstance(events, (dict, list)) and "pull_request_target" in events:
         errors.append(f"{name}: pull_request_target запрещён")
     is_pr = False
     if isinstance(events, dict):
@@ -129,7 +133,7 @@ def check_file(path, errors):
             with_block = step.get("with") or {}
             if (
                 not isinstance(with_block, dict)
-                or with_block.get("persist-credentials") is not False
+                or str(with_block.get("persist-credentials")).lower() != "false"
             ):
                 errors.append(f"{name}: checkout без persist-credentials: false")
         run = step.get("run")
@@ -142,8 +146,13 @@ def main():
     wf_dir = root / ".github/workflows"
     if not wf_dir.is_dir():
         fail_all([f"нет каталога workflow: {wf_dir}"])
+    workflows = {
+        p for pat in ("*.yml", "*.yaml") for p in wf_dir.glob(pat)
+    }
+    if not workflows:
+        fail_all([f"нет workflow-файлов в {wf_dir}"])
     errors = []
-    for path in sorted(wf_dir.glob("*.yml")):
+    for path in sorted(workflows):
         check_file(path, errors)
     if errors:
         fail_all(errors)
