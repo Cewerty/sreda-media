@@ -81,4 +81,5 @@ nav:
   - Спецификации:
       - Рубрики сайта: specs/site-04-rubrics.md
       - 'DevOps site artifact contract': superpowers/specs/2026-11-26-devops-site-artifact-contract-design.md
+      - 'DevOps deploy drill': superpowers/specs/2026-11-26-devops-deploy-drill-design.md
       - Шаблон спецификации: specs/_template.md
