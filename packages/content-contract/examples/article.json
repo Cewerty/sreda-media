@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "article-001",
+  "kind": "article",
+  "slug": "istoriya-perfokart",
+  "title": "История перфокарт",
+  "rubric_id": "history",
+  "author_ids": [
+    "editor",
+    "guest"
+  ],
+  "published_at": "2026-11-10T12:00:00+05:00",
+  "cover": {
+    "path": "media/perfokarty.webp",
+    "alt": "Стопка перфокарт с рядами отверстий"
+  },
+  "payload": {
+    "markdown": "## Как хранили программы\n\nКаждая карта содержала часть программы."
+  }
+}
