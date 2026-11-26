@@ -146,7 +146,7 @@ git commit -F- <<'MSG'
 chore(devops): add local deploy drill
 
 Добавлена сквозная локальная репетиция выкладки без прода, адресов и гейтов.
-Новый PR и push не создавались, serv и чужие ветки не трогались.
+Новый PR и push не создавались, чужие ветки не трогались.
 
 Скрипт scripts/deploy-drill.sh вызывает уже существующие build-site, stage-site,
 sign-artifact, verify-artifact, deploy-static (deploy ×2 и rollback) и
@@ -360,7 +360,7 @@ git commit -F- <<'MSG'
 docs: reflect deploy drill in ops docs
 
 Документирована локальная сквозная репетиция выкладки. Новый PR и push не
-создавались, serv и чужие ветки не трогались.
+создавались, чужие ветки не трогались.
 
 CONTRIBUTING.md: добавлен рецепт just deploy-drill в список неблокирующих
 локальных проверок с явным указанием, что он не входит в verify и ci.

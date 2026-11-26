@@ -27,7 +27,7 @@ PR #16 влит в `main`, поэтому `apps/site` теперь сущест�
 - Включение `ENABLE_DEPLOY`, `ENABLE_DOCS_PAGES`, `ENABLE_PROVENANCE`, `ENABLE_SELF_HEAL`, `SREDA_SITE_URL`.
 - Изменение GitHub Environment, variables, secrets, branch protection.
 - Правка `ci.yml`, `check_log_schema.py`, `CONTRIBUTING.md` в этом спеке — только если потребуется синхронизация документации.
-- Новый PR, новая удалённая ветка, worktree, работа с `serv`.
+- Новый PR, новая удалённая ветка, worktree.
 
 ## Архитектура
 
@@ -117,7 +117,7 @@ just build-site
 3. `site-build.yml` больше не пропускает подпись из-за отсутствия корневого `dist`.
 4. `deploy.yml` и `provenance.yml` используют один и тот же путь артефакта и проверяют контракт перед подписью.
 5. `just verify` зелёный с реальным `apps/site`.
-6. Гейты, алерты, `serv`, чужие PR и фронтенд-исходники не тронуты.
+6. Гейты, алерты, чужие PR и фронтенд-исходники не тронуты.
 7. Новый PR не создан; изменения остаются локальными до явной команды пользователя.
 
 ## Связь с 12 Factor App

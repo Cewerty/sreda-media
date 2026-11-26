@@ -8,7 +8,7 @@
 
 **Tech Stack:** bash, Python 3.14 stdlib, just, GitHub Actions, pnpm/Astro 6, Docker Compose для локальных репетиций.
 
-**Constraints:** только локальная ветка `devops/chaos-self-heal`, уже перемотанная до `origin/main`; новый PR не создаётся; push не делается без отдельной команды пользователя; `serv`, PR #16/#50, `apps/site/**`, `ci.yml`, `check_log_schema.py`, гейты `ENABLE_*` и алерты не трогаются; коммиты только с подробными телами.
+**Constraints:** только локальная ветка `devops/chaos-self-heal`, уже перемотанная до `origin/main`; новый PR не создаётся; push не делается без отдельной команды пользователя; PR #16/#50, `apps/site/**`, `ci.yml`, `check_log_schema.py`, гейты `ENABLE_*` и алерты не трогаются; коммиты только с подробными телами.
 
 ---
 
@@ -141,7 +141,7 @@ Run:
 ```bash
 git add scripts/stage-site.sh justfile
 git commit -m 'chore(devops): stage Astro output into root dist' \
-  -m 'Локальный DevOps-контракт артефакта в ветке devops/chaos-self-heal. PR не создаётся, push не делается, serv и frontend-исходники не тронуты.' \
+  -m 'Локальный DevOps-контракт артефакта в ветке devops/chaos-self-heal. PR не создаётся, push не делается, frontend-исходники не тронуты.' \
   -m 'После слияния PR #16 just build-site собирает Astro в apps/site/dist, а sign-artifact.sh, verify-artifact.sh, deploy-static.sh и deploy/provenance workflow ждут корневой dist. Добавлен scripts/stage-site.sh: проверяет apps/site/dist/index.html, отказывается работать с симлинком dist, пересоздаёт корневой dist и копирует туда результат сборки. just build-site не изменён — это авторитетная часть Ильи.' \
   -m 'Рецепт stage-site добавлен в конец justfile вне verify, чтобы не менять обязательный ci. Проверены позитив с реальной сборкой Astro и негативы: dist-симлинк и отсутствующий apps/site/dist.' \
   -m 'Refs: #5 #9 #14 #47 #48'
@@ -617,6 +617,6 @@ Expected: one commit with 3 files; working tree clean; local HEAD advanced; remo
 ## Execution notes
 
 - Do not create a new branch, PR, worktree or push. Work in the current `devops/chaos-self-heal` branch, already fast-forwarded to `origin/main`.
-- Do not touch `apps/site/**`, PR #16, PR #50, `ci.yml`, `check_log_schema.py`, GitHub settings, `serv`, or alert enable flags.
+- Do not touch `apps/site/**`, PR #16, PR #50, `ci.yml`, `check_log_schema.py`, GitHub settings or alert enable flags.
 - `404.html` is intentionally not created; issue #5 belongs to the frontend owner.
 - All commits must keep detailed bodies and `Refs:`.

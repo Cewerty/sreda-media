@@ -1,5 +1,5 @@
 # Базовый контур логирования включён по умолчанию: Loki + Alloy + Grafana.
-# ADR 0005, issue #14. serv (личный сервер автора) не используется.
+# ADR 0005, issue #14.
 #
 # Проверка синтаксиса: docker compose -f deploy/observability/docker-compose.yml config
 # Запуск базового контура (без изменений в приложениях):

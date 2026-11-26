@@ -12,7 +12,6 @@
 
 ## Вне границ
 
-- `serv`, личный сервер пользователя, не используется.
 - `/srv/sreda/**`, systemd, Caddy, Grafana, Loki и другие чужие процессы не трогаются.
 - `apps/site/**`, `.github/workflows/ci.yml`, `scripts/check_log_schema.py` не изменяются.
 - `404.html` не создаётся и не коммитится: issue #5 остаётся зоной фронтенда.
