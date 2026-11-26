@@ -337,3 +337,7 @@ release-rehearsal:
     python3 scripts/check_site_artifact.py
     python3 scripts/backup_drill.py 2>/dev/null || echo "SKIP: backup-drill недоступен"
     ./scripts/deploy-drill.sh
+
+# Report-only агрегатор доказательств дрилей; не входит в verify и ci.
+drill-gate:
+    python3 scripts/aggregate_drill_reports.py --summary

@@ -1,0 +1,29 @@
+name: drill gate
+
+# Report-only aggregate of machine-readable drill contracts.
+# This job never enters the required `ci` status and adds no merge gate.
+on:
+  schedule:
+    - cron: '37 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: drill-gate
+  cancel-in-progress: false
+
+jobs:
+  drill-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Setup just
+        uses: ./.github/actions/setup-just
+      - name: Aggregate drill contracts
+        run: just drill-gate --summary >> "$GITHUB_STEP_SUMMARY"
