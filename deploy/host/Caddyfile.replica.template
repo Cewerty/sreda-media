@@ -1,0 +1,14 @@
+# DRAFT / NOT PROVISIONED. Placeholder-only Caddy topology.
+# No real host, IP, upstream, or secret is encoded here.
+{$SREDA_SITE_HOST} {
+    handle /healthz {
+        respond "ok" 200
+    }
+    handle {
+        root * /srv/sreda/current
+        file_server
+    }
+    # reverse_proxy for CMS is intentionally disabled until Ilya approves
+    # the topology and Q-1 DNS is resolved.
+    # reverse_proxy {$SREDA_API_UPSTREAM}
+}

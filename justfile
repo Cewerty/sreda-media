@@ -345,3 +345,7 @@ drill-gate:
 # Сравнение двух локальных деревьев по каноническому digest; только SIMULATED.
 mirror-verify primary standby:
     python3 scripts/mirror_verify.py "{{primary}}" "{{standby}}"
+
+# Read-only проверка DRAFT-шаблонов топологии; без provisioning и DNS.
+check-replica-templates:
+    python3 scripts/check_replica_templates.py

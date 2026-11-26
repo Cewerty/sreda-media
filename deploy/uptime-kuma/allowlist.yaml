@@ -1,0 +1,11 @@
+# DRAFT / NOT PROVISIONED. Monitor definitions only, enable=false.
+schema_version: uptime-allowlist/v1
+status: not provisioned
+allowlist:
+  - '{$SREDA_PROBE_HOST}'
+  - 'https://example.invalid/synthetic'
+monitors:
+  - name: static-synthetic
+    url: '{$SREDA_PROBE_HOST}/healthz'
+    enable: false
+    mode: synthetic

@@ -1,0 +1,23 @@
+# DRAFT / NOT PROVISIONED. Do not apply before Q-1 and ADR 0006 §4 approval.
+# This is a placeholder-only topology for a pull-based static replica.
+schema_version: replica-topology/v1
+status: not provisioned
+roles:
+  primary:
+    mode: active
+    artifact_source: git+artifact_sha256
+  standby:
+    mode: read-only
+    sync: pull-by-digest
+    promotion: manual CONFIRM=1
+placeholders:
+  site_host: '{$SREDA_SITE_HOST}'
+  primary_upstream: '{$SREDA_PRIMARY_UPSTREAM}'
+  standby_upstream: '{$SREDA_STANDBY_UPSTREAM}'
+  probe_host: '{$SREDA_PROBE_HOST}'
+guards:
+  no_real_addresses: true
+  no_secret_values: true
+  no_enable_flags: true
+  ci_write_access: false
+  dns_cutover: not included
