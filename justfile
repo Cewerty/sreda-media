@@ -341,3 +341,7 @@ release-rehearsal:
 # Report-only агрегатор доказательств дрилей; не входит в verify и ci.
 drill-gate:
     python3 scripts/aggregate_drill_reports.py --summary --allow-missing
+
+# Сравнение двух локальных деревьев по каноническому digest; только SIMULATED.
+mirror-verify primary standby:
+    python3 scripts/mirror_verify.py "{{primary}}" "{{standby}}"
