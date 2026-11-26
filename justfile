@@ -373,3 +373,26 @@ verify-static:
     # this fast read-only set avoids toolchain writes and network installs.
     uv run --with pyyaml==6.0.4 python -m unittest discover -s scripts -t scripts -p 'test_*.py'
     bash scripts/docs-build.sh
+
+# Локальный наблюдаемый контур: только 127.0.0.1, без ENABLE_* и без прод-путей.
+obs-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if compgen -e | grep -q '^ENABLE_'; then
+        echo 'FAIL: ENABLE_* flags are set; local obs is not allowed' >&2
+        exit 1
+    fi
+    for key in BACKUP_ROOT RESTORE_TARGET SREDA_ROOT PGDATA SREDA_BACKUP_ROOT; do
+        value="${!key:-}"
+        case "$value" in
+            /srv|/srv/*|/etc|/etc/*|/var/lib/postgresql|/var/lib/postgresql/*)
+                echo "FAIL: $key points outside the local sandbox" >&2
+                exit 1
+                ;;
+        esac
+    done
+    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/observability/docker-compose.yml up -d --wait
+
+# Остановить только локальный проект sreda-dev-obs.
+obs-down:
+    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/observability/docker-compose.yml down
