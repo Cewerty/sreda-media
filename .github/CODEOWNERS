@@ -5,12 +5,12 @@
 /docs/adr/ @Cewerty
 /docs/architecture.md @Cewerty
 /docs/roadmap.md @Cewerty
-/apps/site/ @NikkiShuRA
-/apps/cms-web/ @NikkiShuRA
+/apps/site/ @NikkiShuRA @polinakhorikova-lgtm
+/apps/cms-web/ @Suropchek @Pukcha24
 /apps/cms-api/ @Cewerty
 /apps/bot/ @Cewerty
-/packages/ @Cewerty @NikkiShuRA
-/docs/design-system.md @polinakhorikova-lgtm @NikkiShuRA
+/packages/ @Cewerty @NikkiShuRA @Suropchek
+/docs/design-system.md @polinakhorikova-lgtm @NikkiShuRA @Pukcha24 @Suropchek
 /.github/workflows/ @Zisvit
 /docs/DEPLOYMENT.md @Zisvit
 /docs/runbook.md @Zisvit
