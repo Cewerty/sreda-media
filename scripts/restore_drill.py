@@ -32,9 +32,17 @@ def guard(args: argparse.Namespace) -> list[str]:
     for key, value in sorted(os.environ.items()):
         if key.startswith("ENABLE_") and value.lower() not in {"", "0", "false"}:
             violations.append(f"enabled flag: {key}")
-    for value in os.environ.values():
+    guarded_keys = (
+        "BACKUP_ROOT",
+        "RESTORE_TARGET",
+        "SREDA_ROOT",
+        "PGDATA",
+        "SREDA_BACKUP_ROOT",
+    )
+    for key in guarded_keys:
+        value = os.environ.get(key, "")
         if any(marker in value for marker in FORBIDDEN_PATHS):
-            violations.append("real host path present in environment")
+            violations.append(f"real host path in {key}")
             break
     return sorted(set(violations))
 

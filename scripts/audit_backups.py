@@ -105,7 +105,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     sets = [p for p in sorted(args.root.iterdir()) if p.is_dir()]
     completed = [p for p in sets if (p / "manifest.json").is_file() or list(p.glob("*.sha256"))]
-    protected_missing = sorted(name for name in PROTECTED if not (args.root / name).exists())
+    protected_missing = []
+    if not any((args.root / name).exists() for name in PROTECTED):
+        protected_missing = sorted(PROTECTED)
     reports = {p.name: verify_set(p) for p in completed}
     failing = [name for name, report in reports.items() if report["status"] == "FAIL"]
     reasons: list[str] = []

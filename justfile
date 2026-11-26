@@ -324,7 +324,9 @@ audit-backups path:
 
 # Синтетическая репетиция restore во временном каталоге, без прода и БД Ильи.
 restore-drill:
-    python3 scripts/restore_drill.py --artifact-sha256 {{env.SREDA_ARTIFACT_SHA256}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 scripts/restore_drill.py --artifact-sha256 "${SREDA_ARTIFACT_SHA256:-$(printf 'a%.0s' {1..64})}"
 
 # Репетиция порядка ADR 0015; CMS-шаги честно помечены SKIP.
 release-rehearsal:
