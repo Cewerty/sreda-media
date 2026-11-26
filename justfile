@@ -349,3 +349,7 @@ mirror-verify primary standby:
 # Read-only проверка DRAFT-шаблонов топологии; без provisioning и DNS.
 check-replica-templates:
     python3 scripts/check_replica_templates.py
+
+# Report-only проверка timeout/concurrency вне ci.yml.
+check-workflow-timeouts:
+    python3 scripts/check_workflow_timeouts.py
