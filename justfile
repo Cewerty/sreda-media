@@ -358,3 +358,16 @@ check-workflow-timeouts:
 # Locking is best-effort: on non-POSIX hosts append is not atomic.
 record-failure drill-id reason:
     python3 scripts/record_failure.py "{{drill-id}}" "{{reason}}"
+
+# Быстрый read-only набор проверок; НЕ заменяет авторский verify и не gate'ит ci.
+verify-static:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 scripts/check.py
+    python3 scripts/check_runbook_commands.py
+    python3 scripts/check_ops_policy.py
+    python3 scripts/audit_workflows.py
+    python3 scripts/check_tool_pins.py
+    python3 scripts/check_replica_templates.py
+    bash scripts/workflows_lint.sh
+    bash scripts/docs-build.sh
