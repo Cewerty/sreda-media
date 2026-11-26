@@ -301,3 +301,7 @@ retention-guard path:
 # Self-test аддитивного слоя доказательств; без сети и без прода.
 drill-contract-selftest:
     python3 scripts/test_drill_contract.py
+
+# Read-only сравнение выданных байтов с ожидаемым SHA-256; вне verify и CI.
+verify-served-bytes url expected-sha:
+    python3 scripts/verify_served_bytes.py --url {{url}} --expected-sha256 {{expected-sha}}
