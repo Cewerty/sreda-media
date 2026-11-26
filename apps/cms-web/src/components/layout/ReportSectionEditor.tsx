@@ -45,7 +45,7 @@ export function ReportSectionEditor({
             onClick={() => setMode("edit")}
             className={
               mode === "edit"
-                ? "bg-[#F2CA52] text-[#1E2028] hover:bg-[#E5BA41]"
+                ? "bg-brand font-semibold text-brand-foreground hover:bg-brand-strong dark:bg-brand dark:text-brand-foreground dark:hover:bg-brand-strong"
                 : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-[#2F2F2F] dark:text-slate-300 dark:hover:bg-[#3A3A3A]"
             }
           >
@@ -57,6 +57,7 @@ export function ReportSectionEditor({
             size="sm"
             aria-pressed={mode === "preview"}
             aria-describedby={error ? errorId : undefined}
+            disabled={Boolean(error)}
             title={
               error
                 ? "Пока ошибка валидации не исправлена, раздел остаётся в режиме редактирования"
@@ -65,7 +66,7 @@ export function ReportSectionEditor({
             onClick={() => setMode("preview")}
             className={
               mode === "preview"
-                ? "bg-[#F2CA52] text-[#1E2028] hover:bg-[#E5BA41]"
+                ? "bg-brand font-semibold text-brand-foreground hover:bg-brand-strong dark:bg-brand dark:text-brand-foreground dark:hover:bg-brand-strong"
                 : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-[#2F2F2F] dark:text-slate-300 dark:hover:bg-[#3A3A3A]"
             }
           >

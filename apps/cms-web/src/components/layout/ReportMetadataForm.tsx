@@ -1,10 +1,12 @@
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PROPERTY_ROW_HOVER_CLASS } from "@/lib/surfaces";
 import type { ReportValidationError } from "@/lib/validateReport";
 import type { ReportMetadata } from "@/types/candidateReport";
-import { useId } from "react";
+import { CalendarDays } from "lucide-react";
+import { useId, useRef } from "react";
 
 /**
  * Ключи полей, по которым форма ищет и показывает ошибки валидации:
@@ -33,6 +35,21 @@ export function ReportMetadataForm({
   errors = [],
 }: ReportMetadataFormProps) {
   const errorIdBase = useId();
+  const contactDateRef = useRef<HTMLInputElement>(null);
+  const canOpenDatePicker =
+    typeof HTMLInputElement !== "undefined" &&
+    "showPicker" in HTMLInputElement.prototype;
+
+  const openContactDatePicker = () => {
+    const input = contactDateRef.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      // Embedded browsers may block the picker; manual entry remains available.
+      input.focus();
+    }
+  };
 
   const messageFor = (field: ReportErrorField) =>
     errors.find((error) => error.field === field)?.message;
@@ -136,15 +153,36 @@ export function ReportMetadataForm({
         <Label htmlFor="contactDate" className="block">
           Дата контакта
         </Label>
-        <Input
-          id="contactDate"
-          type="date"
-          value={metadata.contactDate}
-          {...ariaFor("contactDate")}
-          onChange={(event) =>
-            handleMetadataFieldChange("contactDate", event.target.value)
-          }
-        />
+        <div className="relative">
+          <Input
+            ref={contactDateRef}
+            id="contactDate"
+            type="date"
+            value={metadata.contactDate}
+            {...ariaFor("contactDate")}
+            onChange={(event) =>
+              handleMetadataFieldChange("contactDate", event.target.value)
+            }
+            className={
+              canOpenDatePicker
+                ? "h-11 pr-12 [&::-webkit-calendar-picker-indicator]:hidden"
+                : "h-11"
+            }
+          />
+          {canOpenDatePicker && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Открыть календарь даты контакта"
+              aria-controls="contactDate"
+              onClick={openContactDatePicker}
+              className="absolute right-0 top-0 h-11 w-11 text-muted-foreground"
+            >
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
         {renderError("contactDate")}
       </div>
 

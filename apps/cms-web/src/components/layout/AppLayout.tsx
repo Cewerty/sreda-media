@@ -172,7 +172,7 @@ export function AppLayout() {
         }`}
       >
         <div
-          className={`flex h-16 shrink-0 items-center ${
+          className={`hidden h-16 shrink-0 items-center md:flex ${
             isSidebarCollapsed ? "justify-center px-2" : "justify-between px-4"
           }`}
         >
@@ -212,7 +212,7 @@ export function AppLayout() {
               to={item.to}
               end={item.end}
               aria-label={item.label}
-              title={isSidebarCollapsed ? item.label : undefined}
+              title={item.label}
               className={({ isActive }) =>
                 `flex items-center rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5BA41] focus-visible:ring-offset-1 ${
                   isSidebarCollapsed
