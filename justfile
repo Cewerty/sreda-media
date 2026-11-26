@@ -282,3 +282,22 @@ check-site-artifact:
 # Сквозная локальная репетиция выкладки, без прода и гейтов; вне verify и CI.
 deploy-drill:
     ./scripts/deploy-drill.sh
+
+# Аддитивный машиночитаемый контракт дриля; не входит в verify и CI.
+emit-drill-contract drill-id artifact-sha:
+    python3 scripts/emit_drill_contract.py "{{drill-id}}" --artifact-sha256 "{{artifact-sha}}" --checks "{{drill-id}}-checks.json" --out "{{drill-id}}-contract.json"
+
+verify-drill-contract path:
+    python3 scripts/verify_drill_contract.py "{{path}}"
+
+# Канонический дайджест дерева: стабилен к mtime и порядку обхода.
+canonical-tree-digest path:
+    python3 scripts/canonical_tree_digest.py "{{path}}"
+
+# Read-only защита ретенции: .last и минимальное число наборов не удаляются.
+retention-guard path:
+    python3 scripts/retention_guard.py "{{path}}"
+
+# Self-test аддитивного слоя доказательств; без сети и без прода.
+drill-contract-selftest:
+    python3 scripts/test_drill_contract.py
