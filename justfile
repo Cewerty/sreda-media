@@ -317,3 +317,21 @@ audit-pins-report:
 # Read-only ресурсный гейт ADR 0006 §4; без ENABLE_* и без required status.
 resource-gate:
     python3 scripts/resource_gate.py
+
+# Read-only аудит завершённых backup-наборов; не удаляет и не восстанавливает.
+audit-backups path:
+    python3 scripts/audit_backups.py "{{path}}"
+
+# Синтетическая репетиция restore во временном каталоге, без прода и БД Ильи.
+restore-drill:
+    python3 scripts/restore_drill.py --artifact-sha256 {{env.SREDA_ARTIFACT_SHA256}}
+
+# Репетиция порядка ADR 0015; CMS-шаги честно помечены SKIP.
+release-rehearsal:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "SKIP: migrate/seed — зона Ильи, ADR 0013/0015"
+    ./scripts/stage-site.sh
+    python3 scripts/check_site_artifact.py
+    python3 scripts/backup_drill.py 2>/dev/null || echo "SKIP: backup-drill недоступен"
+    ./scripts/deploy-drill.sh
