@@ -397,3 +397,7 @@ obs-up:
 # Остановить только локальный проект sreda-dev-obs.
 obs-down:
     COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/dev/docker-compose.yml down
+
+# Read-only check: DEVOPS-STATUS header must match the current branch.
+check-status-freshness:
+    python3 scripts/check_status_freshness.py
