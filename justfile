@@ -353,3 +353,7 @@ check-replica-templates:
 # Report-only проверка timeout/concurrency вне ci.yml.
 check-workflow-timeouts:
     uv run --with pyyaml==6.0.4 python scripts/check_workflow_timeouts.py
+
+# Append a report-only failure event; never gates CI and never alerts.
+record-failure drill-id reason:
+    python3 scripts/record_failure.py "{{drill-id}}" "{{reason}}"
