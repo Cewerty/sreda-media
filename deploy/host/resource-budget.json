@@ -1,0 +1,19 @@
+{
+  "schema_version": "resource-budget/v1",
+  "approved": false,
+  "owner": "Cewerty",
+  "reason": "ADR 0006 §4: provider, tariff and measurements require Ilya's decision",
+  "limits": {
+    "cpu_idle_percent": 20,
+    "ram_idle_mb": 512,
+    "disk_free_gb": 10,
+    "egress_mbps": 10,
+    "restore_minutes": 15
+  },
+  "measurements": null,
+  "notes": [
+    "empty measurements are an honest SKIP, not a PASS",
+    "second VPS (~500 RUB/month) is out of budget until approved",
+    "the author's personal server is not a project platform; /srv/sreda is a planned VPS path"
+  ]
+}

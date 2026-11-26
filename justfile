@@ -313,3 +313,7 @@ check-tool-pins:
 # Единый аддитивный отчёт по пинам; вне verify и CI.
 audit-pins-report:
     python3 scripts/audit_pins_report.py
+
+# Read-only ресурсный гейт ADR 0006 §4; без ENABLE_* и без required status.
+resource-gate:
+    python3 scripts/resource_gate.py
