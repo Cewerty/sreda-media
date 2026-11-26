@@ -365,7 +365,7 @@ verify-static:
     set -euo pipefail
     python3 scripts/check.py
     python3 scripts/check_runbook_commands.py
-    python3 scripts/check_ops_policy.py
+    uv run --with pyyaml==6.0.4 python scripts/check_ops_policy.py
     python3 scripts/audit_workflows.py
     python3 scripts/check_tool_pins.py
     python3 scripts/check_replica_templates.py
