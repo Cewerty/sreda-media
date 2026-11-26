@@ -305,3 +305,11 @@ drill-contract-selftest:
 # Read-only сравнение выданных байтов с ожидаемым SHA-256; вне verify и CI.
 verify-served-bytes url expected-sha:
     python3 scripts/verify_served_bytes.py --url {{url}} --expected-sha256 {{expected-sha}}
+
+# Read-only аудит закреплённых версий инструментов; вне verify и CI.
+check-tool-pins:
+    python3 scripts/check_tool_pins.py
+
+# Единый аддитивный отчёт по пинам; вне verify и CI.
+audit-pins-report:
+    python3 scripts/audit_pins_report.py

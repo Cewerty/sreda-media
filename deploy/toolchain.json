@@ -1,0 +1,21 @@
+{
+  "schema_version": "toolchain/v1",
+  "description": "Expected tool pins for DevOps-owned scripts and workflows. Not an application lockfile.",
+  "expected_pins": [
+    "go install github.com/zricethezav/gitleaks/v8@v8.30.1",
+    "uvx --from mkdocs-material==9.8.2 mkdocs serve",
+    "uvx --from mkdocs-material==9.8.2 mkdocs build",
+    "go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12",
+    "uvx --from zizmor==1.33.1 zizmor",
+    "uvx --from pip-audit==2.10.1 pip-audit"
+  ],
+  "allow_with_warning": [
+    "uvx --from rust-just just",
+    "glitchtip/glitchtip:latest"
+  ],
+  "notes": [
+    "Pins are checked only in justfile, scripts/ and non-CI workflows.",
+    "Application lockfiles and ci.yml remain owned by Ilya and are not scanned.",
+    "A warning is not PASS: it must be recorded in the drill contract."
+  ]
+}
