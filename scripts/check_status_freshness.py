@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-BRANCH_RE = re.compile(r"Ветка:\s*`([^`]+)`")
+BRANCH_RE = re.compile(r"Ветка:\*{0,2}\s*`([^`]+)`")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

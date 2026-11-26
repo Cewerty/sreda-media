@@ -38,6 +38,13 @@ class StatusFreshnessTest(unittest.TestCase):
             self.assertEqual(result.returncode, 3)
             self.assertIn("NO-GO", result.stdout)
 
+    def test_bold_header_is_parsed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "STATUS.md"
+            path.write_text("> **Ветка:** `devops/test`\n", encoding="utf-8")
+            result = run("--status-file", str(path), "--branch", "devops/test")
+            self.assertEqual(result.returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
