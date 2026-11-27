@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from sha256_util import normalize_sha256
+
 ROOT = Path(__file__).resolve().parent.parent
 DIGEST = ROOT / "scripts" / "canonical_tree_digest.py"
 
@@ -31,13 +33,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("standby", type=Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-    left, right = tree_digest(args.primary), tree_digest(args.standby)
-    passed = left == right
+    problems: list[str] = []
+    for label, path in (("primary", args.primary), ("standby", args.standby)):
+        if not path.is_dir():
+            problems.append(f"{label} directory missing: {path}")
+        elif not any(path.iterdir()):
+            problems.append(f"{label} directory empty: {path}")
+    left = normalize_sha256(tree_digest(args.primary)) if not problems else ""
+    right = normalize_sha256(tree_digest(args.standby)) if not problems else ""
+    passed = not problems and left == right
     payload: dict[str, Any] = {
         "schema_version": "mirror-verify/v1",
         "mode": "SIMULATED",
         "verdict": "PASS" if passed else "FAIL",
         "exit_code": 0 if passed else 1,
+        "reasons": problems or ([] if passed else ["tree digests differ"]),
         "primary_digest": left,
         "standby_digest": right,
         "does_not_prove": [

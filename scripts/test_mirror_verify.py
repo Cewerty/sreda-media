@@ -45,5 +45,18 @@ class MirrorVerifyTest(unittest.TestCase):
             self.assertEqual(json.loads(result.stdout)["verdict"], "FAIL")
 
 
+    def test_empty_and_missing_trees_fail_cleanly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            empty = root / "empty"
+            empty.mkdir()
+            result = run(empty, root / "absent")
+            self.assertEqual(result.returncode, 1)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["verdict"], "FAIL")
+            self.assertTrue(any("empty" in r for r in payload["reasons"]))
+            self.assertTrue(any("missing" in r for r in payload["reasons"]))
+
+
 if __name__ == "__main__":
     unittest.main()
