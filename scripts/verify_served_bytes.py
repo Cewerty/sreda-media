@@ -16,6 +16,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from sha256_util import normalize_sha256
+
 TIMEOUT_SECONDS = 5
 
 
@@ -57,46 +59,61 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         if not isinstance(manifest, dict):
             raise ValueError("--manifest must be a JSON object")
+        if not manifest:
+            raise ValueError("manifest is empty")
         for relpath, expected in sorted(manifest.items()):
             url = args.base_url.rstrip("/") + "/" + str(relpath).lstrip("/")
+            expected_digest = normalize_sha256(str(expected))
+            error_message: str | None = None
             try:
                 actual = fetch_sha256(url, args.timeout)
-                status = "PASS" if actual == expected else "FAIL"
+                status = "PASS" if actual == expected_digest else "FAIL"
             except Exception as error:  # noqa: BLE001 - report-only diagnostic
                 actual = None
                 status = "FAIL"
-                entries.append({"url": url, "error": str(error)})
+                error_message = str(error)
             entries.append(
                 {
                     "path": str(relpath),
                     "url": url,
-                    "expected_sha256": expected,
+                    "expected_sha256": expected_digest,
                     "actual_sha256": actual,
                     "status": status,
+                    "error": error_message,
                 }
             )
     else:
         if not args.url or not args.expected_sha256:
             raise ValueError("--url and --expected-sha256 are required")
+        expected_digest = normalize_sha256(args.expected_sha256)
+        error_message: str | None = None
         try:
             actual = fetch_sha256(args.url, args.timeout)
-            status = "PASS" if actual == args.expected_sha256 else "FAIL"
+            status = "PASS" if actual == expected_digest else "FAIL"
         except Exception as error:  # noqa: BLE001 - report-only diagnostic
             actual = None
             status = "FAIL"
-            entries.append({"url": args.url, "error": str(error)})
+            error_message = str(error)
         entries.append(
             {
                 "url": args.url,
-                "expected_sha256": args.expected_sha256,
+                "expected_sha256": expected_digest,
                 "actual_sha256": actual,
                 "status": status,
+                "error": error_message,
             }
         )
-    verdict = "PASS" if all(item["status"] == "PASS" for item in entries) else "FAIL"
+    if not entries:
+        raise ValueError("manifest is empty")
+    verdict = (
+        "PASS"
+        if all(item["status"] == "PASS" for item in entries)
+        else "FAIL"
+    )
     return {
         "schema_version": "served-bytes/v1",
         "verdict": verdict,
+        "exit_code": 0 if verdict == "PASS" else 1,
         "checks": entries,
         "proves": ["response body sha256"] if verdict == "PASS" else [],
         "does_not_prove": [
@@ -117,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         report = {
             "schema_version": "served-bytes/v1",
             "verdict": "FAIL",
+            "exit_code": 1,
             "checks": [],
             "proves": [],
             "does_not_prove": ["all checks"],
