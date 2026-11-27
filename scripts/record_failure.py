@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import argparse
-import fcntl
 import json
 import os
 import sys
 from datetime import datetime, timezone
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX platforms
+    fcntl = None
 from pathlib import Path
 from typing import Any
 
@@ -57,11 +61,13 @@ def main(argv: list[str] | None = None) -> int:
     args.journal.parent.mkdir(parents=True, exist_ok=True)
     try:
         with args.journal.open("a", encoding="utf-8") as handle:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
             handle.write(json.dumps(event, sort_keys=True, ensure_ascii=False) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
     except OSError as error:
         print(f"FAIL: cannot append journal: {error}", file=sys.stderr)
         return 1

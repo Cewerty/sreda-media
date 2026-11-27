@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -35,6 +36,25 @@ class FailureJournalTest(unittest.TestCase):
             self.assertEqual(len(lines), 2)
             self.assertEqual(json.loads(lines[0])["drill_id"], "backup-drill")
             self.assertEqual(json.loads(lines[1])["drill_id"], "alert-drill")
+
+
+    def test_append_without_fcntl_is_best_effort(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "record_failure", ROOT / "scripts" / "record_failure.py"
+        )
+        if spec is None or spec.loader is None:
+            raise AssertionError("cannot load record_failure")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        module.fcntl = None
+        with tempfile.TemporaryDirectory() as tmp:
+            journal = Path(tmp) / "failures.jsonl"
+            code = module.main(
+                ["portable-drill", "no-lock", "--journal", str(journal)]
+            )
+            self.assertEqual(code, 0)
+            self.assertEqual(len(journal.read_text(encoding="utf-8").splitlines()), 1)
 
 
 if __name__ == "__main__":
