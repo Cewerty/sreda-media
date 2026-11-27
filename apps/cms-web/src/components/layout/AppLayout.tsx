@@ -11,14 +11,17 @@ import {
   getReportByCandidateId,
 } from "@/data/demoData";
 import { applyReportUpdate } from "@/lib/reportTransitions";
+import { mockContentPlan } from "@/mocks/contentPlan";
 import type {
   Candidate,
   CandidateReport,
   CuratorProfile,
   InterviewEntry,
 } from "@/types/candidateReport";
+import type { ContentPlanData } from "@/types/contentPlan";
 
 export interface AppOutletContext {
+  contentPlan: ContentPlanData;
   candidates: Candidate[];
   curator: CuratorProfile;
   reports: Record<string, CandidateReport>;
@@ -144,6 +147,7 @@ export function AppLayout() {
 
   const contextValue = useMemo<AppOutletContext>(
     () => ({
+      contentPlan: mockContentPlan,
       candidates,
       curator,
       reports,
