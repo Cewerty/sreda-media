@@ -7,13 +7,14 @@ Read-only and report-only. Does not edit documentation or CI.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-BRANCH_RE = re.compile(r"Ветка:\*{0,2}\s*`([^`]+)`")
+BRANCH_RE = re.compile(r"\*\*Ветка:\*\*\s*`([^`]+)`")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -41,10 +42,18 @@ def current_branch() -> str:
 def evaluate(args: argparse.Namespace) -> tuple[int, str, dict[str, Any]]:
     path = Path(args.status_file)
     if not path.is_file():
-        return 1, "FAIL: status file missing", {"verdict": "FAIL", "reasons": ["status file missing"]}
+        return 1, "FAIL: status file missing", {
+            "schema_version": "status-freshness/v1",
+            "verdict": "FAIL",
+            "reasons": ["status file missing"],
+        }
     match = BRANCH_RE.search(path.read_text(encoding="utf-8"))
     if not match:
-        return 1, "FAIL: branch header missing", {"verdict": "FAIL", "reasons": ["branch header missing"]}
+        return 1, "FAIL: branch header missing", {
+            "schema_version": "status-freshness/v1",
+            "verdict": "FAIL",
+            "reasons": ["branch header missing"],
+        }
     documented = match.group(1).strip()
     actual = args.branch or current_branch()
     reasons: list[str] = []
@@ -52,6 +61,7 @@ def evaluate(args: argparse.Namespace) -> tuple[int, str, dict[str, Any]]:
     if verdict != "PASS":
         reasons.append(f"status branch {documented!r} != current branch {actual!r}")
     details: dict[str, Any] = {
+        "schema_version": "status-freshness/v1",
         "verdict": verdict,
         "status_branch": documented,
         "current_branch": actual,
@@ -66,13 +76,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         code, summary, details = evaluate(args)
     except (OSError, subprocess.CalledProcessError) as error:
-        details = {"verdict": "FAIL", "reasons": [str(error)]}
-        print(details if args.json else f"FAIL: {error}", file=sys.stderr)
+        details = {
+            "schema_version": "status-freshness/v1",
+            "verdict": "FAIL",
+            "exit_code": 1,
+            "reasons": [str(error)],
+            "does_not_prove": [
+                "deployment readiness",
+                "DNS cutover",
+                "runtime availability",
+            ],
+        }
+        if args.json:
+            print(json.dumps(details, ensure_ascii=False, sort_keys=True))
+        else:
+            print(f"FAIL: {error}", file=sys.stderr)
         return 1
     details["exit_code"] = code
     if args.json:
-        import json
-
         print(json.dumps(details, ensure_ascii=False, sort_keys=True))
     else:
         print(summary, file=sys.stdout if code == 0 else sys.stderr)
