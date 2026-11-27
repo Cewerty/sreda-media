@@ -82,7 +82,7 @@ scripts/deploy-static.sh verify https://sreda.sielom.ru /srv/sreda/releases/<п�
 под profiles. Схема SQL — `deploy/observability/schema.sql`, дашборд —
 `deploy/observability/grafana-dashboards/overview.json`, контракт логов проверяется
 через отдельный path-aware job `log-schema` в `ci.yml` (локально — `just check-logs` в составе `just verify`). Решение по Kafka и триггеры
-его возврата описаны в ADR 0005. `serv` не используется. В проде переопределяем
+его возврата описаны в ADR 0005. В проде переопределяем
 секреты через env.
 
 Grafana provisioning лежит строго в подпапках

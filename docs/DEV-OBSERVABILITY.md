@@ -7,7 +7,7 @@
 - Продакшен-стек `deploy/observability/docker-compose.yml` не изменяется.
 - Порты `3000` (Grafana prod), `3100` (Loki prod), `12345` (Alloy prod) и `3001` (Uptime Kuma) не используются.
 - Не монтируются `/var/log/caddy` и `/var/lib/docker/containers`.
-- `serv` и любые внешние серверы не используются.
+- Внешние серверы не используются.
 
 ## Порты
 
