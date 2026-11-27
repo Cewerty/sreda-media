@@ -18,6 +18,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from sha256_util import normalize_sha256
+
 SCHEMA_VERSION = "drill-contract/v1"
 STATUSES = {"PASS", "SKIP", "FAIL"}
 SKIP_REASONS = {
@@ -27,7 +29,6 @@ SKIP_REASONS = {
     "missing_tool",
     "missing_secret",
 }
-SHA256 = re.compile(r"^[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{7,40}$")
 
 
@@ -140,16 +141,15 @@ def normalize_checks(raw: Any) -> list[dict[str, Any]]:
 
 def build_contract(args: argparse.Namespace) -> dict[str, Any]:
     """Build the contract dictionary from validated inputs."""
-    if not SHA256.fullmatch(args.artifact_sha256):
-        raise ValueError("--artifact-sha256 must be 64 lowercase hex chars")
+    artifact = normalize_sha256(args.artifact_sha256)
     commit = args.commit or current_commit()
     if not COMMIT.fullmatch(commit):
         raise ValueError("commit must be 7-40 lowercase hex chars")
     if args.ttl_seconds <= 0:
         raise ValueError("--ttl-seconds must be positive")
     previous = args.prev_contract_sha256
-    if previous is not None and not SHA256.fullmatch(previous):
-        raise ValueError("--prev-contract-sha256 must be 64 lowercase hex chars")
+    if previous is not None:
+        previous = normalize_sha256(previous)
     raw = json.loads(args.checks.read_text(encoding="utf-8"))
     checks = normalize_checks(raw)
     required = args.required_checks or [check["id"] for check in checks]
@@ -166,7 +166,7 @@ def build_contract(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "mode": args.mode,
         "commit": commit,
-        "artifact_sha256": args.artifact_sha256,
+        "artifact_sha256": artifact,
         "checks": checks,
     }
     if previous is not None:

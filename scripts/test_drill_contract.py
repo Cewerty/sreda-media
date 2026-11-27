@@ -15,7 +15,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SHA = "a" * 64
-NOW = "2026-11-26T00:00:00Z"
+NOW = datetime.now(timezone.utc).replace(microsecond=0).strftime(
+    "%Y-%m-%dT%H:%M:%SZ"
+)
 
 
 def git_head() -> str:
@@ -223,6 +225,36 @@ class DrillContractTest(unittest.TestCase):
         data["prev_contract_sha256"] = "0" * 64
         self.contract.write_text(json.dumps(data), encoding="utf-8")
         self.assertEqual(self.verify("--prev-contract", str(previous)).returncode, 1)
+
+
+    def test_sha256_prefix_is_normalized(self) -> None:
+        """Digest output from canonical_tree_digest can be piped in directly."""
+        self.write_checks(
+            {
+                "id": "artifact",
+                "status": "PASS",
+                "proves": ["digest"],
+                "does_not_prove": [],
+            }
+        )
+        result = run(
+            "emit_drill_contract.py",
+            "unit",
+            "--artifact-sha256",
+            f"sha256:{SHA}",
+            "--checks",
+            str(self.checks),
+            "--now",
+            NOW,
+            "--ttl-seconds",
+            "86400",
+            "--out",
+            str(self.contract),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(self.contract.read_text(encoding="utf-8"))
+        self.assertEqual(data["artifact_sha256"], SHA)
+        self.assertEqual(self.verify().returncode, 0)
 
 
 class SupportScriptTest(unittest.TestCase):
