@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sha256_util import normalize_sha256
+
 SCHEMA_VERSION = "drill-contract/v1"
 STATUSES = {"PASS", "SKIP", "FAIL"}
 SKIP_REASONS = {
@@ -147,8 +149,12 @@ def validate_shape(contract: dict[str, Any]) -> None:
         raise ValueError(f"unknown mode: {contract['mode']!r}")
     if not COMMIT.fullmatch(contract["commit"]):
         raise ValueError("commit must be 7-40 lowercase hex chars")
-    if not SHA256.fullmatch(contract["artifact_sha256"]):
-        raise ValueError("artifact_sha256 must be 64 lowercase hex chars")
+    try:
+        contract["artifact_sha256"] = normalize_sha256(
+            str(contract["artifact_sha256"])
+        )
+    except ValueError as error:
+        raise ValueError(f"artifact_sha256: {error}") from error
     generated = parse_timestamp(contract["generated_at"])
     expires = parse_timestamp(contract["ttl_until"])
     if expires <= generated:
@@ -166,9 +172,12 @@ def validate_shape(contract: dict[str, Any]) -> None:
     if "notes" in contract and not isinstance(contract["notes"], list):
         raise ValueError("notes must be a list")
     if "prev_contract_sha256" in contract:
-        previous = contract["prev_contract_sha256"]
-        if not isinstance(previous, str) or not SHA256.fullmatch(previous):
-            raise ValueError("prev_contract_sha256 must be 64 lowercase hex chars")
+        try:
+            contract["prev_contract_sha256"] = normalize_sha256(
+                str(contract["prev_contract_sha256"])
+            )
+        except ValueError as error:
+            raise ValueError(f"prev_contract_sha256: {error}") from error
 
 
 def validate_checks(contract: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:

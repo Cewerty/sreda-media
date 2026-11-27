@@ -227,6 +227,31 @@ class DrillContractTest(unittest.TestCase):
         self.assertEqual(self.verify("--prev-contract", str(previous)).returncode, 1)
 
 
+    def test_empty_contract_is_fail(self) -> None:
+        """An empty object is missing evidence, not a passing contract."""
+        self.contract.write_text("{}", encoding="utf-8")
+        result = self.verify("--json")
+        self.assertEqual(result.returncode, 1)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["verdict"], "FAIL")
+
+    def test_prefixed_contract_digest_is_normalized(self) -> None:
+        self.write_checks(
+            {
+                "id": "artifact",
+                "status": "PASS",
+                "proves": ["digest"],
+                "does_not_prove": [],
+            }
+        )
+        self.assertEqual(self.emit().returncode, 0)
+        data = json.loads(self.contract.read_text(encoding="utf-8"))
+        data["artifact_sha256"] = f"sha256:{SHA}"
+        self.contract.write_text(json.dumps(data), encoding="utf-8")
+        result = self.verify("--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["artifact_sha256"], SHA)
+
     def test_sha256_prefix_is_normalized(self) -> None:
         """Digest output from canonical_tree_digest can be piped in directly."""
         self.write_checks(
