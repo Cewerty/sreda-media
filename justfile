@@ -369,5 +369,7 @@ verify-static:
     python3 scripts/audit_workflows.py
     python3 scripts/check_tool_pins.py
     python3 scripts/check_replica_templates.py
-    bash scripts/workflows_lint.sh
+    # workflows-lint stays in the author's `verify` and in workflows-lint.yml;
+    # this fast read-only set avoids toolchain writes and network installs.
+    uv run --with pyyaml==6.0.4 python -m unittest discover -s scripts -t scripts -p 'test_*.py'
     bash scripts/docs-build.sh
