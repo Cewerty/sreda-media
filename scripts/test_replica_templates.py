@@ -58,5 +58,19 @@ class ReplicaTemplateTest(unittest.TestCase):
             self.assertTrue(any("real address" in error for error in errors))
 
 
+    def test_every_monitor_must_be_disabled(self) -> None:
+        module = load_module()
+        fixture = """
+monitors:
+  - name: first
+    enable: false
+  - name: second
+    enable: true
+"""
+        errors = module.monitor_errors(fixture)
+        self.assertTrue(any("second" in error for error in errors))
+        self.assertEqual(module.monitor_errors("monitors:\n  - name: a\n    enable: false\n"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

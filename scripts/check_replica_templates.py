@@ -28,6 +28,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def monitor_errors(text: str) -> list[str]:
+    """Return errors for any monitor block that is not explicitly disabled."""
+    errors: list[str] = []
+    blocks = re.split(r"(?m)^\s*-\s+name:\s*", text)[1:]
+    for block in blocks:
+        name = block.splitlines()[0].strip() if block.splitlines() else "?"
+        lines = [
+            line.strip()
+            for line in block.splitlines()
+            if line.strip().startswith("enable:")
+        ]
+        if not lines or not any(line == "enable: false" for line in lines):
+            errors.append(f"monitor {name}: enable must be explicitly false")
+    return errors
+
+
 def validate() -> tuple[bool, list[str]]:
     """Validate that templates stay placeholder-only and not provisioned."""
     errors: list[str] = []
@@ -53,9 +69,9 @@ def validate() -> tuple[bool, list[str]]:
             errors.append(f"{rel}: active reverse_proxy before Q-1")
     allowlist = ROOT / FILES[2]
     if allowlist.is_file():
-        text = allowlist.read_text(encoding="utf-8")
-        if "enable: false" not in text:
-            errors.append("uptime-kuma allowlist has an enabled monitor")
+        errors.extend(
+            monitor_errors(allowlist.read_text(encoding="utf-8"))
+        )
     return not errors, errors
 
 
