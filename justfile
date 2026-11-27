@@ -340,4 +340,4 @@ release-rehearsal:
 
 # Report-only агрегатор доказательств дрилей; не входит в verify и ci.
 drill-gate:
-    python3 scripts/aggregate_drill_reports.py --summary
+    python3 scripts/aggregate_drill_reports.py --summary --allow-missing

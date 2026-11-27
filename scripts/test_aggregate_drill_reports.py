@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import datetime, timezone
 import sys
 import tempfile
 import unittest
@@ -12,7 +13,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SHA = "a" * 64
-NOW = "2026-11-26T00:00:00Z"
+NOW = datetime.now(timezone.utc).replace(microsecond=0).strftime(
+    "%Y-%m-%dT%H:%M:%SZ"
+)
 
 
 def git_head() -> str:
@@ -42,6 +45,36 @@ class AggregateDrillReportsTest(unittest.TestCase):
             self.assertEqual(result.returncode, 3)
             payload = json.loads(result.stdout)
             self.assertEqual(payload["verdict"], "NO-GO")
+
+    def test_missing_dir_is_fail_without_allow_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = str(Path(tmp) / "absent")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "aggregate_drill_reports.py"),
+                 "--reports-dir", missing, "--json"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["verdict"], "FAIL")
+
+    def test_missing_dir_is_skip_when_expected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = str(Path(tmp) / "absent")
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "aggregate_drill_reports.py"),
+                 "--reports-dir", missing, "--allow-missing", "--summary"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("SKIP", result.stdout)
+            self.assertIn("reports dir missing", result.stdout)
 
     def test_good_report_is_pass(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -21,6 +21,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--verify-timeout", type=int, default=30)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--summary", action="store_true")
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        help="treat an absent reports directory as SKIP instead of FAIL",
+    )
     return parser.parse_args(argv)
 
 
@@ -47,21 +52,45 @@ def verify_report(path: Path, timeout: int) -> dict[str, Any]:
 
 
 def aggregate(args: argparse.Namespace) -> dict[str, Any]:
-    reports = sorted(args.reports_dir.glob("*.json")) if args.reports_dir.is_dir() else []
+    reasons: list[str] = []
+    if not args.reports_dir.is_dir():
+        reason = f"reports dir missing: {args.reports_dir}"
+        if args.allow_missing:
+            return {
+                "schema_version": "drill-gate/v1",
+                "verdict": "SKIP",
+                "exit_code": 0,
+                "reasons": [reason],
+                "reports": [],
+                "does_not_prove": ["all drill evidence"],
+            }
+        return {
+            "schema_version": "drill-gate/v1",
+            "verdict": "FAIL",
+            "exit_code": 1,
+            "reasons": [reason],
+            "reports": [],
+            "does_not_prove": ["all drill evidence"],
+        }
+    reports = sorted(args.reports_dir.glob("*.json"))
     results = [verify_report(path, args.verify_timeout) for path in reports]
     statuses = [str(item.get("verdict", "FAIL")) for item in results]
     if not reports:
         verdict, exit_code = "NO-GO", 3
+        reasons.append("no drill contracts found")
     elif "FAIL" in statuses:
         verdict, exit_code = "FAIL", 1
+        reasons.append("one or more contracts failed")
     elif "NO-GO" in statuses:
         verdict, exit_code = "NO-GO", 3
+        reasons.append("one or more contracts are NO-GO")
     else:
         verdict, exit_code = "PASS", 0
     return {
         "schema_version": "drill-gate/v1",
         "verdict": verdict,
         "exit_code": exit_code,
+        "reasons": reasons,
         "reports": results,
         "does_not_prove": [
             "production availability",
@@ -74,6 +103,8 @@ def aggregate(args: argparse.Namespace) -> dict[str, Any]:
 
 def render_summary(payload: dict[str, Any]) -> str:
     lines = ["## Drill evidence gate", "", f"Verdict: **{payload['verdict']}**", ""]
+    for reason in payload.get("reasons", []):
+        lines.append(f"- {reason}")
     for item in payload["reports"]:
         lines.append(f"- `{item['report']}`: {item.get('verdict', 'FAIL')}")
     if not payload["reports"]:

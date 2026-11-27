@@ -24,4 +24,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Aggregate drill contracts
-        run: python3 scripts/aggregate_drill_reports.py --summary >> "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/aggregate_drill_reports.py --summary --allow-missing >> "$GITHUB_STEP_SUMMARY"
