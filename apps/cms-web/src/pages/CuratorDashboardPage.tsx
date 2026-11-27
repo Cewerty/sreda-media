@@ -34,7 +34,7 @@ function formatEventTimestamp(timestamp: string): string {
 }
 
 const cardClassName =
-  "rounded-2xl border border-transparent bg-muted p-5 transition-colors hover:border-border";
+  "rounded-2xl border border-transparent bg-muted p-6 transition-colors hover:border-border";
 
 const focusRingClassName =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-strong focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -53,7 +53,7 @@ export function CuratorDashboardPage() {
   const events = curator.recentEvents;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="cms-dashboard mx-auto max-w-6xl space-y-10">
       <section className={cardClassName}>
         <div className="flex items-center gap-4">
           {curator.avatarUrl ? (
@@ -146,7 +146,7 @@ export function CuratorDashboardPage() {
             Событий пока нет.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="cms-events">
             {events.map((event) => {
               const content = (
                 <>
@@ -154,11 +154,16 @@ export function CuratorDashboardPage() {
                     className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
-                  <div className="min-w-0">
-                    <p className="text-sm text-foreground">{event.text}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatEventTimestamp(event.timestamp)}
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                    <p className="text-sm leading-6 text-foreground">
+                      {event.text}
                     </p>
+                    <time
+                      dateTime={event.timestamp}
+                      className="shrink-0 text-xs leading-6 text-muted-foreground"
+                    >
+                      {formatEventTimestamp(event.timestamp)}
+                    </time>
                   </div>
                 </>
               );
@@ -168,12 +173,12 @@ export function CuratorDashboardPage() {
                   {event.candidateId ? (
                     <Link
                       to={`/candidates/${event.candidateId}`}
-                      className={`flex items-start gap-3 rounded-2xl border border-transparent bg-muted p-4 transition-colors hover:border-border ${focusRingClassName}`}
+                      className={`cms-event flex items-start gap-3 rounded-lg px-2 py-5 transition-colors hover:bg-muted ${focusRingClassName}`}
                     >
                       {content}
                     </Link>
                   ) : (
-                    <div className="flex items-start gap-3 rounded-2xl border border-transparent bg-muted p-4">
+                    <div className="cms-event flex items-start gap-3 rounded-lg px-2 py-5">
                       {content}
                     </div>
                   )}

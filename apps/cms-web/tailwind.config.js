@@ -45,6 +45,7 @@ export default {
         border: "hsl(var(--border) / <alpha-value>)",
         "border-hover": "hsl(var(--border-hover) / <alpha-value>)",
         input: "hsl(var(--input) / <alpha-value>)",
+        field: "hsl(var(--field) / <alpha-value>)",
         ring: "hsl(var(--ring) / <alpha-value>)",
         sidebar: "hsl(var(--sidebar) / <alpha-value>)",
         plate: {

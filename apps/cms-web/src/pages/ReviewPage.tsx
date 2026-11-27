@@ -235,11 +235,11 @@ function ReviewPageContent() {
       </div>
 
       <div className={`rounded-2xl p-5 ${CARD_SURFACE_CLASS}`}>
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-col items-start gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
           <span className="font-medium text-foreground">
             Заполнено разделов: {completedSections} из {totalSections}
           </span>
-          <span className="text-muted-foreground">
+          <span className="shrink-0 text-muted-foreground">
             {Math.round(progressValue)}%
           </span>
         </div>

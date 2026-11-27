@@ -168,7 +168,7 @@ export function AppLayout() {
   );
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="cms-shell flex min-h-screen bg-background text-foreground">
       <aside
         id="app-sidebar"
         className={`flex shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar transition-[width] duration-200 ease-out motion-reduce:transition-none ${
@@ -176,7 +176,7 @@ export function AppLayout() {
         }`}
       >
         <div
-          className={`flex h-16 shrink-0 items-center ${
+          className={`hidden h-16 shrink-0 items-center md:flex ${
             isSidebarCollapsed ? "justify-center px-2" : "justify-between px-4"
           }`}
         >
@@ -215,8 +215,8 @@ export function AppLayout() {
               key={item.to}
               to={item.to}
               end={item.end}
-              aria-label={isSidebarCollapsed ? item.label : undefined}
-              title={isSidebarCollapsed ? item.label : undefined}
+              aria-label={item.label}
+              title={item.label}
               className={({ isActive }) =>
                 `flex items-center rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E5BA41] focus-visible:ring-offset-1 ${
                   isSidebarCollapsed
@@ -240,7 +240,7 @@ export function AppLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-border bg-background">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-8 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-8">
             <div>
               <p className="text-base font-semibold text-foreground">
                 Цифровой двойник наставника
@@ -258,11 +258,11 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-8 py-6">
+        <main className="cms-main flex-1 px-4 py-8 sm:px-8 lg:py-10">
           <div
             className={`mx-auto w-full ${getContentWidthClass(location.pathname)}`}
           >
-            <div className="rounded-2xl border border-border bg-background p-6">
+            <div className="cms-workspace">
               <Outlet context={contextValue} />
             </div>
           </div>
@@ -270,7 +270,7 @@ export function AppLayout() {
 
         <footer className="border-t border-border bg-background">
           <div
-            className={`mx-auto w-full space-y-1 px-8 py-4 text-sm text-muted-foreground ${getContentWidthClass(location.pathname)}`}
+            className={`mx-auto w-full space-y-1 px-4 py-5 sm:px-8 text-sm text-muted-foreground ${getContentWidthClass(location.pathname)}`}
           >
             <p>
               Прототип на вымышленных данных. Интеграция с 1С и генерация ИИ не

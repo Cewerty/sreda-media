@@ -32,11 +32,11 @@ export function ReportSectionEditor({
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-[#E3E3E3]">
           {title}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant={mode === "edit" ? "secondary" : "ghost"}
@@ -45,7 +45,7 @@ export function ReportSectionEditor({
             onClick={() => setMode("edit")}
             className={
               mode === "edit"
-                ? "bg-[#F2CA52] text-[#1E2028] hover:bg-[#E5BA41]"
+                ? "bg-brand font-semibold text-brand-foreground hover:bg-brand-strong dark:bg-brand dark:text-brand-foreground dark:hover:bg-brand-strong"
                 : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-[#2F2F2F] dark:text-slate-300 dark:hover:bg-[#3A3A3A]"
             }
           >
@@ -57,6 +57,7 @@ export function ReportSectionEditor({
             size="sm"
             aria-pressed={mode === "preview"}
             aria-describedby={error ? errorId : undefined}
+            disabled={Boolean(error)}
             title={
               error
                 ? "Пока ошибка валидации не исправлена, раздел остаётся в режиме редактирования"
@@ -65,7 +66,7 @@ export function ReportSectionEditor({
             onClick={() => setMode("preview")}
             className={
               mode === "preview"
-                ? "bg-[#F2CA52] text-[#1E2028] hover:bg-[#E5BA41]"
+                ? "bg-brand font-semibold text-brand-foreground hover:bg-brand-strong dark:bg-brand dark:text-brand-foreground dark:hover:bg-brand-strong"
                 : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-[#2F2F2F] dark:text-slate-300 dark:hover:bg-[#3A3A3A]"
             }
           >
