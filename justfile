@@ -391,8 +391,9 @@ obs-up:
                 ;;
         esac
     done
-    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/observability/docker-compose.yml up -d --wait
+    : "${GRAFANA_ADMIN_PASSWORD:?set a dev-only GRAFANA_ADMIN_PASSWORD}"
+    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/dev/docker-compose.yml up -d --wait
 
 # Остановить только локальный проект sreda-dev-obs.
 obs-down:
-    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/observability/docker-compose.yml down
+    COMPOSE_PROJECT_NAME=sreda-dev-obs docker compose -f deploy/dev/docker-compose.yml down
