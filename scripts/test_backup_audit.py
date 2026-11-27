@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -25,6 +26,16 @@ def run(script: str, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+def synthetic_digest() -> str:
+    """Compute the digest of the tree the drill synthesizes."""
+    with tempfile.TemporaryDirectory() as tmp:
+        payload = Path(tmp) / "payload"
+        payload.mkdir()
+        (payload / "b.txt").write_text("beta", encoding="utf-8")
+        (payload / "a.txt").write_text("alpha", encoding="utf-8")
+        return run("canonical_tree_digest.py", str(payload)).stdout.strip()
+
+
 class BackupAuditTest(unittest.TestCase):
     """Tests for audit_backups.py and restore_drill.py."""
 
@@ -34,7 +45,14 @@ class BackupAuditTest(unittest.TestCase):
             for name in ("2026-11-25", "2026-11-26"):
                 child = root / name
                 child.mkdir()
-                (child / "manifest.json").write_text("{}", encoding="utf-8")
+                payload = child / "blob.txt"
+                payload.write_text("data", encoding="utf-8")
+                (child / "manifest.json").write_text(
+                    json.dumps(
+                        {"files": {"blob.txt": hashlib.sha256(b"data").hexdigest()}}
+                    ),
+                    encoding="utf-8",
+                )
             (root / ".last").symlink_to(root / "2026-11-26")
             good = run("audit_backups.py", str(root), "--json")
             self.assertEqual(good.returncode, 0)
@@ -63,7 +81,7 @@ class BackupAuditTest(unittest.TestCase):
             result = run(
                 "restore_drill.py",
                 "--artifact-sha256",
-                SHA,
+                synthetic_digest(),
                 "--out",
                 str(out),
             )
@@ -71,6 +89,33 @@ class BackupAuditTest(unittest.TestCase):
             contract = json.loads(out.read_text(encoding="utf-8"))
             statuses = {c["status"] for c in contract["checks"]}
             self.assertIn("SKIP", statuses)
+
+
+    def test_empty_manifest_is_not_a_valid_set(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            child = root / "2026-11-26"
+            child.mkdir()
+            (child / "manifest.json").write_text("{}", encoding="utf-8")
+            (root / ".last").symlink_to(child)
+            result = run("audit_backups.py", str(root), "--json")
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("manifest:empty", result.stdout)
+
+    def test_restore_drill_exit_follows_verdict(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            good = run(
+                "restore_drill.py", "--artifact-sha256", synthetic_digest()
+            )
+            self.assertEqual(good.returncode, 0)
+            bad = run(
+                "restore_drill.py",
+                "--artifact-sha256",
+                "0" * 64,
+                "--json",
+            )
+            self.assertEqual(bad.returncode, 1)
+            self.assertIn("FAIL", bad.stdout)
 
 
 if __name__ == "__main__":

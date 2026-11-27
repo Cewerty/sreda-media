@@ -47,6 +47,15 @@ def verify_set(path: Path) -> dict[str, Any]:
                 "does_not_prove": [f"manifest unreadable: {error}"],
             }
         files = data.get("files", {}) if isinstance(data, dict) else {}
+        if not files:
+            checks.append(
+                {
+                    "id": "manifest:empty",
+                    "status": "FAIL",
+                    "proves": [],
+                    "does_not_prove": ["no verified backup content"],
+                }
+            )
         for name, expected in sorted(files.items()):
             target = path / name
             if not target.is_file() or sha256_file(target) != expected:

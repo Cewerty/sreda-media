@@ -12,6 +12,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from sha256_util import normalize_sha256
+
 ROOT = Path(__file__).resolve().parent.parent
 FORBIDDEN_PATHS = ("/srv", "/etc", "/var/lib/postgresql")
 
@@ -65,7 +67,7 @@ def synthetic_digest(root: Path) -> str:
 def build_contract(root: Path, expected: str, ttl: int) -> dict[str, Any]:
     """Build a drill contract for the synthetic restore."""
     digest = synthetic_digest(root)
-    matched = digest == expected
+    matched = normalize_sha256(digest) == expected
     checks = [
         {
             "id": "restored_tree_digest",
@@ -122,17 +124,22 @@ def main(argv: list[str] | None = None) -> int:
     if violations:
         print("FAIL: " + "; ".join(violations), file=sys.stderr)
         return 1
+    try:
+        expected = normalize_sha256(args.artifact_sha256)
+    except ValueError as error:
+        print(f"FAIL: {error}", file=sys.stderr)
+        return 1
     with tempfile.TemporaryDirectory(prefix="sreda-restore-drill-") as tmp:
-        contract = build_contract(Path(tmp), args.artifact_sha256, args.ttl_seconds)
+        contract = build_contract(Path(tmp), expected, args.ttl_seconds)
     payload = json.dumps(contract, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    verdict = "PASS" if all(c["status"] != "FAIL" for c in contract["checks"]) else "FAIL"
     if args.out:
         Path(args.out).write_text(payload, encoding="utf-8")
     elif args.json:
         sys.stdout.write(payload)
     else:
-        verdict = "PASS" if all(c["status"] != "FAIL" for c in contract["checks"]) else "FAIL"
         print(f"{verdict}: synthetic restore drill completed")
-    return 0
+    return 0 if verdict == "PASS" else 1
 
 
 if __name__ == "__main__":
