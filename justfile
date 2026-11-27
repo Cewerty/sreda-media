@@ -352,4 +352,4 @@ check-replica-templates:
 
 # Report-only проверка timeout/concurrency вне ci.yml.
 check-workflow-timeouts:
-    python3 scripts/check_workflow_timeouts.py
+    uv run --with pyyaml==6.0.4 python scripts/check_workflow_timeouts.py

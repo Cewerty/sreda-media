@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
-"""Report-only check for timeout and concurrency in non-CI workflows."""
+"""Report-only per-job timeout and concurrency check for non-CI workflows."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 ALLOWLIST = {"ci.yml"}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workflows-dir", default=".github/workflows")
     parser.add_argument("--json", action="store_true")
@@ -22,34 +24,54 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def scan(path: Path) -> list[str]:
-    """Return findings for one workflow file."""
-    text = path.read_text(encoding="utf-8")
+    """Return per-job findings for one workflow file."""
+    try:
+        document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as error:
+        return [f"unparseable workflow: {error}"]
     findings: list[str] = []
-    if not re.search(r"^\s*timeout-minutes:\s*\d+\s*$", text, re.MULTILINE):
-        findings.append("missing timeout-minutes")
-    if "schedule:" in text and not re.search(
-        r"^concurrency:\s*$", text, re.MULTILINE
-    ):
-        findings.append("scheduled workflow missing concurrency")
+    jobs = document.get("jobs")
+    if not isinstance(jobs, dict):
+        return ["missing jobs"]
+    for name, job in jobs.items():
+        if not isinstance(job, dict) or "uses" in job:
+            continue
+        if not isinstance(job.get("timeout-minutes"), int):
+            findings.append(f"job {name}: missing timeout-minutes")
+    on_key = "on" if "on" in document else True
+    triggers = document.get(on_key)
+    if isinstance(triggers, dict) and "schedule" in triggers:
+        if "concurrency" not in document:
+            findings.append("scheduled workflow missing concurrency")
     return findings
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    directory = ROOT / args.workflows_dir
+def collect(directory: Path) -> tuple[list[str], dict[str, list[str]]]:
+    """Return checked files and findings, never touching CI."""
+    checked: list[str] = []
     findings: dict[str, list[str]] = {}
-    for path in sorted(directory.glob("*.yml")):
-        if path.name in ALLOWLIST:
-            continue
-        issues = scan(path)
-        if issues:
-            findings[path.name] = issues
+    patterns = ("*.yml", "*.yaml")
+    for pattern in patterns:
+        for path in sorted(directory.glob(pattern)):
+            checked.append(path.name)
+            if path.name in ALLOWLIST:
+                continue
+            issues = scan(path)
+            if issues:
+                findings[path.name] = issues
+    return sorted(checked), findings
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point."""
+    args = parse_args(argv)
+    checked, findings = collect(ROOT / args.workflows_dir)
     verdict = "FAIL" if findings else "PASS"
     details: dict[str, Any] = {
         "schema_version": "workflow-timeout-report/v1",
         "verdict": verdict,
         "exit_code": 1 if findings else 0,
-        "checked": sorted(p.name for p in directory.glob("*.yml") if p.name not in ALLOWLIST),
+        "checked": checked,
         "allowlist": sorted(ALLOWLIST),
         "findings": findings,
         "does_not_prove": [
@@ -63,7 +85,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         if findings:
             for name, issues in findings.items():
-                print(f"FAIL {name}: {', '.join(issues)}", file=sys.stderr)
+                for issue in issues:
+                    print(f"FAIL {name}: {issue}", file=sys.stderr)
         else:
             print("ok: workflow timeouts and concurrency (ci.yml allowlisted)")
     return int(details["exit_code"])
