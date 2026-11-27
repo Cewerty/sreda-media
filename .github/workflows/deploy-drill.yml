@@ -17,10 +17,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: deploy-drill-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   drill:
     name: Local deploy rehearsal
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     continue-on-error: true
     steps:
       - name: Checkout
@@ -39,6 +44,18 @@ jobs:
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
       - name: Run deploy drill
+        id: drill
         env:
           JUST: just
         run: just deploy-drill
+      - name: Report drill outcome
+        if: always()
+        env:
+          OUTCOME: ${{ steps.drill.outcome }}
+        run: |
+          if [ "$OUTCOME" = "success" ]; then
+            echo "Deploy drill: PASS (report-only)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Deploy drill failed (outcome=$OUTCOME)"
+            echo "Deploy drill: FAIL (outcome=$OUTCOME, report-only)" >> "$GITHUB_STEP_SUMMARY"
+          fi
