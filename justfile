@@ -270,3 +270,14 @@ chaos-drill:
 # Демо-дайджест по фиксированным локальным событиям, без сети и секретов.
 sre-digest:
     python3 scripts/log_digest.py
+
+# Быстрый read-only набор проверок без установки инструментов из сети.
+# Не замена `verify`: в него входят только скрипты, уже есть в main.
+verify-static:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 scripts/check.py
+    python3 scripts/check_runbook_commands.py
+    uv run --with pyyaml==6.0.4 python scripts/check_ops_policy.py
+    python3 scripts/audit_workflows.py
+    bash scripts/docs-build.sh
