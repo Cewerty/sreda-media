@@ -13,7 +13,7 @@ cd "$REPO_ROOT"
 log() { printf '[deploy-drill] %s\n' "$*"; }
 fail() { printf '[deploy-drill] FAIL: %s\n' "$*" >&2; exit 1; }
 
-read -r -a JUST_CMD <<< "${JUST:-uvx --from rust-just just}"
+read -r -a JUST_CMD <<< "${JUST:-uvx --from rust-just==1.59.0 just}"
 
 command -v pnpm >/dev/null 2>&1 || fail "pnpm не найден: нужна среда Node/pnpm"
 command -v python3 >/dev/null 2>&1 || fail "python3 не найден"
