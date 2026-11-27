@@ -14,19 +14,22 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 BUDGET = ROOT / "deploy" / "host" / "resource-budget.json"
-FIELDS = (
-    "cpu_idle_percent",
-    "ram_idle_mb",
-    "disk_free_gb",
-    "egress_mbps",
-    "restore_minutes",
-)
+# Free resources must stay above the floor; cost/time must stay below it.
+MIN_FIELDS = ("cpu_idle_percent", "ram_idle_mb", "disk_free_gb")
+MAX_FIELDS = ("egress_mbps", "restore_minutes")
+FIELDS = MIN_FIELDS + MAX_FIELDS
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    parser.add_argument(
+        "--budget",
+        type=Path,
+        default=BUDGET,
+        help="override the budget manifest (for fixture-based tests)",
+    )
     return parser.parse_args()
 
 
@@ -50,8 +53,10 @@ def evaluate(budget: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(value, (int, float)) or not isinstance(limit, (int, float)):
             reasons.append(f"invalid measurement or limit: {field}")
             continue
-        if value > limit:
-            breaches.append(f"{field}={value} > limit={limit}")
+        if field in MIN_FIELDS and value < limit:
+            breaches.append(f"{field}={value} < minimum={limit}")
+        elif field in MAX_FIELDS and value > limit:
+            breaches.append(f"{field}={value} > maximum={limit}")
     if breaches:
         verdict, exit_code = "FAIL", 1
     elif reasons:
@@ -76,7 +81,7 @@ def evaluate(budget: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     """Entry point."""
     args = parse_args()
-    result = evaluate(json.loads(BUDGET.read_text(encoding="utf-8")))
+    result = evaluate(json.loads(args.budget.read_text(encoding="utf-8")))
     if args.json:
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
     else:
