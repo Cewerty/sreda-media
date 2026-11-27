@@ -11,7 +11,7 @@ switchover. Решение о переводе в рабочую конфигу�
 
 ## Граница
 
-В области này — только статический артефакт витрины. CMS, PostgreSQL,
+В этой области — только статический артефакт витрины. CMS, PostgreSQL,
 очереди, media и миграции находятся в зоне Ильи (ADR 0008, ADR 0013,
 ADR 0015) и явно попадают в `does_not_prove`.
 
@@ -96,10 +96,10 @@ ADR 0015) и явно попадают в `does_not_prove`.
 
 ```bash
 python3 scripts/emit_drill_contract.py unit --artifact-sha256 "$(printf a%.0s {1..64})" \
-  --checks <checks.json> --out <contract.json>
-python3 scripts/verify_drill_contract.py <contract.json>
+  --checks drill-checks.json --out drill-contract.json
+python3 scripts/verify_drill_contract.py drill-contract.json
 python3 scripts/canonical_tree_digest.py dist
-python3 scripts/retention_guard.py <backup-dir>
+python3 scripts/retention_guard.py /tmp/sreda-backups
 python3 scripts/test_drill_contract.py
 git diff --name-only
 ```
