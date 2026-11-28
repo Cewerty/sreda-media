@@ -31,7 +31,10 @@ theme:
 # рабочими в репозитории, но MkDocs не может их резолвить: не делаем из них warning.
 validation:
   links:
+    # Вне docs_dir ссылки не резолвятся MkDocs, поэтому not_found остаётся info.
     not_found: info
+    anchors: warn
+    unrecognized_links: warn
 
 markdown_extensions:
   - admonition
