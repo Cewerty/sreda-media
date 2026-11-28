@@ -5,6 +5,9 @@ name: Dependency review (non-blocking)
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Еженедельный неблокирующий OSV-отчёт, по вторникам.
+    - cron: '41 5 * * 2'
 
 permissions:
   contents: read
@@ -22,7 +25,6 @@ jobs:
 
   osv-scan:
     name: OSV scan
-    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:

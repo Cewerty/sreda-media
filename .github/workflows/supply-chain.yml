@@ -5,6 +5,9 @@ name: Supply chain (non-blocking)
 on:
   workflow_call:
   workflow_dispatch:
+  schedule:
+    # Еженедельный неблокирующий отчёт по advisory/SBOM, по вторникам.
+    - cron: '23 5 * * 2'
 
 permissions:
   contents: read
@@ -29,6 +32,8 @@ jobs:
           cache: pnpm
       - name: Setup uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.12.15"
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
       - name: pnpm audit
@@ -71,3 +76,15 @@ jobs:
           scan-ref: .
           format: table
           exit-code: '0'
+      - name: Advisory report summary
+        if: always()
+        run: |
+          {
+            echo '### Supply-chain advisory report'
+            if [ -f sbom.spdx.json ]; then
+              echo "- SBOM SHA-256: \`$(sha256sum sbom.spdx.json | cut -d' ' -f1)\`"
+            else
+              echo '- SBOM: не собран'
+            fi
+            echo '- pnpm audit / pip-audit / Trivy: informational, continue-on-error.'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -21,6 +21,8 @@ jobs:
           persist-credentials: false
       - name: Setup uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.12.15"
       - name: Build docs strictly
         run: uvx --from mkdocs-material==9.8.2 mkdocs build --strict --site-dir /tmp/sreda-mkdocs-check
 
@@ -35,6 +37,8 @@ jobs:
           persist-credentials: false
       - name: Setup uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.12.15"
       - name: Build MkDocs
         run: uvx --from mkdocs-material==9.8.2 mkdocs build --strict --site-dir site
       - name: Upload artifact

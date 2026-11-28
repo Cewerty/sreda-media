@@ -19,18 +19,26 @@ if [ -f "$ARTIFACT/cosign.sig" ] && [ -f "$ARTIFACT/cosign.pem" ] && command -v 
     COSIGN_VERIFIED=true
 fi
 
-python3 - "$ARTIFACT/release.json" "$SHA256" "$GIT_SHA" "$GIT_BRANCH" "$COSIGN_VERIFIED" <<'PY'
+python3 - "$ARTIFACT/release.json" "$SHA256" "$GIT_SHA" "$GIT_BRANCH" "$COSIGN_VERIFIED" "${SREDA_SBOM_PATH:-}" <<'PY'
 import datetime
+import hashlib
 import json
 import os
 import sys
+from pathlib import Path
 
-out, sha256, git_sha, git_branch, cosign = sys.argv[1:6]
+out, sha256, git_sha, git_branch, cosign, sbom_arg = sys.argv[1:7]
+sbom_path = Path(sbom_arg) if sbom_arg else None
+sbom_sha256 = None
+if sbom_path and sbom_path.is_file():
+    sbom_sha256 = hashlib.sha256(sbom_path.read_bytes()).hexdigest()
 manifest = {
     "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "git_sha": git_sha,
     "git_branch": git_branch,
     "artifact_sha256": sha256,
+    "sbom_ref": sbom_path.name if sbom_sha256 else None,
+    "sbom_sha256": sbom_sha256,
     "cosign_verified": cosign == "true",
     "gates": {
         "ENABLE_DEPLOY": os.getenv("ENABLE_DEPLOY", "") == "true",
