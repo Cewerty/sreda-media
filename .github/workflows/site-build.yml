@@ -31,11 +31,15 @@ jobs:
         run: just build-site
       - name: Install cosign
         uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
+      # Non-blocking: caller ci.yml не grant'ит id-token, поэтому cosign
+      # не может получить OIDC-токен. Статус всё равно публикуется явно.
       - name: Prepare artifact signature (non-blocking)
+        id: sign
         continue-on-error: true
         run: |
           if [ -d dist ]; then
-            ./scripts/sign-artifact.sh dist
+            ./scripts/sign-artifact.sh dist | tee -a "$GITHUB_STEP_SUMMARY"
           else
-            echo "dist ещё нет (PR #16): подпись артефакта пропущена"
+            echo "signature.status=skipped_no_artifact" | tee -a "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
+            echo "artifact.sha256=none" | tee -a "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
           fi
