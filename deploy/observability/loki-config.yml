@@ -43,4 +43,5 @@ schema_config:
         period: 24h
 
 ruler:
-  alertmanager_url: http://alertmanager:9093
+  # Сервис alertmanager не развёрнут; правила Grafana идут напрямую в contact points.
+  # alertmanager_url: http://alertmanager:9093

@@ -14,7 +14,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "up{job=\"node\"}",
           "refId": "A"
         }
@@ -32,7 +32,7 @@
       "gridPos": { "h": 18, "w": 12, "x": 12, "y": 0 },
       "targets": [
         {
-          "datasource": { "type": "loki", "uid": "Loki" },
+          "datasource": { "type": "loki", "uid": "loki" },
           "expr": "{job=\"caddy\"}",
           "refId": "A"
         }
@@ -51,7 +51,7 @@
       "gridPos": { "h": 12, "w": 12, "x": 0, "y": 6 },
       "targets": [
         {
-          "datasource": { "type": "postgres", "uid": "ObservabilitySQL" },
+          "datasource": { "type": "postgres", "uid": "observability-sql" },
           "rawSql": "SELECT started_at, revision, action, outcome FROM deploy_events ORDER BY started_at DESC LIMIT 20",
           "format": "table",
           "rawQuery": true,

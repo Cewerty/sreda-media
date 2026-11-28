@@ -5,10 +5,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="${OBS_COMPOSE_FILE:-$REPO_ROOT/deploy/observability/docker-compose.yml}"
-LOKI_URL="${LOKI_URL:-http://127.0.0.1:3100/ready}"
-GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:3000/api/health}"
-ALLOY_URL="${ALLOY_URL:-http://127.0.0.1:12345/-/ready}"
+COMPOSE_FILE="${OBS_COMPOSE_FILE:-$REPO_ROOT/deploy/dev/docker-compose.yml}"
+LOKI_URL="${LOKI_URL:-http://127.0.0.1:13100/ready}"
+GRAFANA_URL="${GRAFANA_URL:-http://127.0.0.1:13000/api/health}"
+ALLOY_URL="${ALLOY_URL:-http://127.0.0.1:13345/-/ready}"
 
 log() { printf '[obs-health] %s\n' "$*"; }
 fail() { printf '[obs-health] ОШИБКА: %s\n' "$*" >&2; exit 1; }
