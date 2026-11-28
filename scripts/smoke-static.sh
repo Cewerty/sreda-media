@@ -17,13 +17,15 @@ missing=${SREDA_SMOKE_MISSING_PATH:-/__sreda-smoke-missing__}
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
 
-main_code=$(curl -sS -o "$tmp" -w '%{http_code}' "$base/" || true)
+main_code=$(curl -sS --connect-timeout 5 --max-time 10 \
+    -o "$tmp" -w '%{http_code}' "$base/" || true)
 [ "$main_code" = "200" ] || fail "главная отдаёт $main_code, ожидался 200"
 if [ -n "$marker" ]; then
     grep -qF "$marker" "$tmp" || fail "на главной нет маркера: $marker"
 fi
 
-missing_code=$(curl -sS -o /dev/null -w '%{http_code}' "$base$missing" || true)
+missing_code=$(curl -sS --connect-timeout 5 --max-time 10 \
+    -o /dev/null -w '%{http_code}' "$base$missing" || true)
 [ "$missing_code" = "404" ] || fail "несуществующая страница отдаёт $missing_code, ожидался 404"
 
 log "главная=$main_code, отсутствующая=$missing_code, маркер=${marker:-не проверялся}"

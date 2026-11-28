@@ -28,10 +28,11 @@ jobs:
           cache: pnpm
       - name: Setup uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          version: "0.12.15"
       - name: Setup just
         uses: ./.github/actions/setup-just # zizmor: ignore[self-repository]
       - name: Collect coverage
-        continue-on-error: true
         run: just cov
       - name: Upload coverage reports
         if: always()

@@ -82,7 +82,7 @@ Grafana provisioning лежит в подпапках
 Правила `alerting/rules.yml` и Telegram-контакт `alerting/contact-points.yml`
 подготовлены, но у всех правил стоит label `enabled="false"` и они не попадают
 под маршрут из `alerting/policies.yml`, поэтому уведомлений нет. Включение внешних
-мониторов и алертов — после PR #16 (`apps/site` в main) и Q-1 (адрес/DNS).
+мониторов и алертов — после Q-1 (адрес/DNS); `apps/site` уже в main.
 Provisioning проверяется рецептом `just check-alerts` внутри `verify`: секреты Telegram
 должны быть env-ссылками, правила — отключены (`enabled="false"`), маршрут политик —
 только для `enabled=true`. Шаблон env-переменных лежит в
@@ -94,4 +94,4 @@ Provisioning проверяется рецептом `just check-alerts` вну�
 неблокирующем workflow `supply-chain.yml` и не влияют на обязательный статус `ci`.
 Репетиция алертов — `just alert-drill` (статическая проверка плюс тестовая запись в Loki, если он поднят), здоровье запущенного контура — `just obs-health` (только чтение). Обе команды не входят в `verify` и не включают отключённые правила. Подпись артефакта через cosign вызывается в `site-build.yml` **неблокирующим** шагом (`continue-on-error: true`) и ждёт реального адреса/OIDC; в `verify` не входит, без cosign честно пропускается. Ночной `backup-drill.yml` (DRY_RUN) и ежедневный `docs-check` (`mkdocs build --strict` без публикации) работают вне обязательного статуса `ci`. Для локального CMS API добавлен PostgreSQL 18 на 127.0.0.1:55432 (`just api-db-up` / `just api-db-down`, см. [DEV-API.md](DEV-API.md)); в CI рецепт пропускается и используется сервис из `cms-api.yml`. Личный сервер автора (`serv`) не используется.
 
-Еженедельная репетиция алертов (`alert-drill.yml`, по понедельникам) проверяет provisioning и при поднятом Loki пишет тестовое событие, не включая правила и не отправляя уведомления. Smoke витрины (`just smoke <url>`) проверяет 200 на главной, 404 на несуществующей странице и, если задан `SREDA_SMOKE_MARKER`, маркер контента; вызывается после реальной выкладки из `deploy.yml` и ждёт Q-1/PR #16. Strict-сборка документации (`just docs-build`) теперь входит в `just verify`, но не публикует Pages. Docker Compose/hadolint и dependency review/OSV идут в неблокирующих workflow `supply-chain.yml` и `dependency-review.yml` и не меняют обязательный статус `ci`.
+Еженедельный `alert-drill.yml` проверяет provisioning, ежедневный `docs-check` собирает MkDocs без публикации; оба вне обязательного `ci`. Smoke витрины (`just smoke <url>`) проверяет 200/404 и маркер при `SREDA_SMOKE_MARKER`; ждёт Q-1. Упомянутые рецепты не включают алерты и не меняют `ci`.

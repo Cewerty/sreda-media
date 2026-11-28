@@ -41,6 +41,7 @@ services:
     volumes:
       - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/log/caddy:/var/log/caddy:ro
+      - /var/log/sreda:/var/log/sreda:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - alloy-data:/var/lib/alloy/data
     ports:
@@ -64,9 +65,10 @@ services:
     image: prom/node-exporter:v1.10.2
     profiles: ["logs"]
     restart: unless-stopped
-    command: --path.rootfs=/host
+    command: --path.rootfs=/host --collector.textfile.directory=/var/lib/node-exporter/textfile
     volumes:
       - /:/host:ro,rslave
+      - ${SREDA_TEXTFILE_DIR:-/srv/sreda/backups/textfile}:/var/lib/node-exporter/textfile:ro
     ports:
       - "127.0.0.1:9100:9100"
     logging: *default-logging
@@ -108,7 +110,7 @@ services:
     environment:
       POSTGRES_DB: observability
       POSTGRES_USER: observability
-      POSTGRES_PASSWORD: ${POSTGRES_OBSERVABILITY_PASSWORD:-change-me}
+      POSTGRES_PASSWORD: ${POSTGRES_OBSERVABILITY_PASSWORD:?set POSTGRES_OBSERVABILITY_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro

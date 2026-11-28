@@ -7,9 +7,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${OBS_COMPOSE_FILE:-$REPO_ROOT/deploy/observability/docker-compose.yml}"
 BACKUP_DIR="${BACKUP_DIR:-/srv/sreda/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
+MIN_KEEP="${MIN_KEEP:-2}"
 DRY_RUN="${DRY_RUN:-0}"
-PGPASSWORD_VALUE="${POSTGRES_OBSERVABILITY_PASSWORD:-change-me}"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
+FRESHNESS_FILE="${SREDA_FRESHNESS_FILE:-/srv/sreda/backups/textfile/sreda.prom}"
+SQL_FILE=""
+GRAFANA_FILE=""
+MANIFEST=""
 
 log() { printf '[backup] %s\n' "$*"; }
 fail() { printf '[backup] ОШИБКА: %s\n' "$*" >&2; exit 1; }
@@ -23,10 +27,31 @@ emit() {
     printf '{"component":"backup","environment":"production","event":"%s","outcome":"%s","release":"%s","timestamp":"%s"}\n' \
         "$1" "$2" "$TS" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$BACKUP_LOG" 2>/dev/null || true
 }
-trap 'emit backup_failed failure' ERR
+cleanup() {
+    status=$?
+    if [ "$status" -ne 0 ] && [ "$DRY_RUN" != "1" ]; then
+        emit backup_failed failure
+    fi
+    for partial in "${SQL_FILE}.partial" "${GRAFANA_FILE}.partial" "${MANIFEST}.partial"; do
+        [ -n "$partial" ] && rm -f -- "$partial" 2>/dev/null || true
+    done
+    return 0
+}
+trap cleanup EXIT
+
+write_freshness() {
+    [ "$DRY_RUN" != "1" ] || return 0
+    mkdir -p "$(dirname "$FRESHNESS_FILE")" || return 0
+    printf 'backup_last_success_timestamp %s\n' "$(date +%s)" \
+        > "${FRESHNESS_FILE}.tmp" && mv -f "${FRESHNESS_FILE}.tmp" "$FRESHNESS_FILE" || true
+}
 
 command -v docker >/dev/null 2>&1 || fail "docker не найден"
 [ -f "$COMPOSE_FILE" ] || fail "compose-файл не найден: $COMPOSE_FILE"
+if [ "$DRY_RUN" != "1" ]; then
+    : "${POSTGRES_OBSERVABILITY_PASSWORD:?set POSTGRES_OBSERVABILITY_PASSWORD}"
+fi
+PGPASSWORD_VALUE="${POSTGRES_OBSERVABILITY_PASSWORD:-change-me}"
 emit backup_started running
 
 if [ "$DRY_RUN" != "1" ]; then
@@ -45,8 +70,10 @@ else
     log "pg_dump postgres -> $SQL_FILE"
     docker compose -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$PGPASSWORD_VALUE" postgres \
         pg_dump -U observability -d observability --no-owner --clean --if-exists \
-        | gzip -9 > "$SQL_FILE"
-    gzip -t "$SQL_FILE" || fail "повреждён SQL-дамп"
+        | gzip -9 > "${SQL_FILE}.partial"
+    [ -s "${SQL_FILE}.partial" ] || fail "пустой SQL-дамп"
+    gzip -t "${SQL_FILE}.partial" || fail "повреждён SQL-дамп"
+    mv -f "${SQL_FILE}.partial" "$SQL_FILE"
 fi
 
 # Grafana хранит пользовательские алерты, настройки и сессии в своём volume.
@@ -56,8 +83,10 @@ if [ "$DRY_RUN" = "1" ]; then
 else
     log "tar /var/lib/grafana -> $GRAFANA_FILE"
     docker compose -f "$COMPOSE_FILE" exec -T grafana \
-        sh -c 'tar czf - -C /var/lib/grafana .' > "$GRAFANA_FILE"
-    gzip -t "$GRAFANA_FILE" || fail "повреждён архив Grafana"
+        sh -c 'tar czf - -C /var/lib/grafana .' > "${GRAFANA_FILE}.partial"
+    [ -s "${GRAFANA_FILE}.partial" ] || fail "пустой архив Grafana"
+    gzip -t "${GRAFANA_FILE}.partial" || fail "повреждён архив Grafana"
+    mv -f "${GRAFANA_FILE}.partial" "$GRAFANA_FILE"
 fi
 
 # Опциональное шифрование: если задан получатель age, открытые дампы не остаются на диске.
@@ -81,14 +110,36 @@ fi
 
 (
     cd "$BACKUP_DIR"
-    sha256sum "$(basename "$SQL_FILE")" "$(basename "$GRAFANA_FILE")" > "$(basename "$MANIFEST")"
+    sha256sum "$(basename "$SQL_FILE")" "$(basename "$GRAFANA_FILE")" \
+        > "$(basename "${MANIFEST}.partial")"
+)
+mv -f "${MANIFEST}.partial" "$MANIFEST"
+
+declare -A PROTECT=()
+while IFS= read -r manifest; do
+    prefix="${manifest%-manifest.sha256}"
+    PROTECT["$prefix"]=1
+done < <(
+    find "$BACKUP_DIR" -maxdepth 1 -type f -name '*-manifest.sha256' \
+        -printf '%T@ %f\n' | sort -nr | head -n "$MIN_KEEP" | cut -d' ' -f2-
 )
 
-find "$BACKUP_DIR" -maxdepth 1 -type f \
-    \( -name '*-observability.sql.gz' -o -name '*-observability.sql.gz.age' \
-       -o -name '*-grafana.tar.gz' -o -name '*-grafana.tar.gz.age' \
-       -o -name '*-manifest.sha256' \) \
-    -mtime "+${RETENTION_DAYS}" -delete
+while IFS= read -r -d '' candidate; do
+    base="$(basename "$candidate")"
+    prefix="${base%%-*}"
+    if [ -n "${PROTECT[$prefix]:-}" ]; then
+        emit backup_retention_skipped skipped
+        continue
+    fi
+    rm -f -- "$candidate"
+done < <(
+    find "$BACKUP_DIR" -maxdepth 1 -type f \
+        \( -name '*-observability.sql.gz' -o -name '*-observability.sql.gz.age' \
+           -o -name '*-grafana.tar.gz' -o -name '*-grafana.tar.gz.age' \
+           -o -name '*-manifest.sha256' \) \
+        -mtime "+${RETENTION_DAYS}" -print0
+)
 
 emit backup_finished success
+write_freshness
 log "готово: $(basename "$SQL_FILE"), $(basename "$GRAFANA_FILE"), $(basename "$MANIFEST")"

@@ -1,16 +1,22 @@
 # DevOps — текущий статус
 
-> **Ветка:** `observability/foundation`  
-> **Обновлено:** 25.11.2026  
-> **Ответственный:** Костян (Zisvit), DevOps  
+> **Ветка:** `main`<br>
+> **База:** `e4ecb24` (28.11.2026)<br>
+> **Обновлено:** 28.11.2026<br>
+> **Ответственный:** Костян (Zisvit), DevOps<br>
 > **Принцип:** готовим заранее, включаем только когда объект и адрес существуют.
+
+PR #16 уже влит в `main`: витрина собирается в CI. Блокирующим остаётся только
+адрес/DNS (Q-1); ниже упоминания «до PR #16» — исторические.
 
 Эта страница — короткий срез последних DevOps-задач: что уже лежит в ветке, что
 проверено, что намеренно выключено и где искать детали. Полные процедуры остаются
 в [Runbook](runbook.md), [Мониторинге](monitoring.md) и
 [DEPLOYMENT](DEPLOYMENT.md).
 
-## Последние коммиты
+## Исторические коммиты baseline (#47)
+
+Таблица ниже описывает фундамент #47, а не текущий HEAD `main`.
 
 | Коммит | Тема | Суть |
 | --- | --- | --- |
@@ -44,7 +50,7 @@
 | --- | --- | --- | --- |
 | `ci` | `ci.yml`, PR и `push main` | Да | Единственный обязательный статус в ruleset. |
 | `log-schema`, `workflows-lint`, `conventions`, `config-lint`, `secrets`, `tests`, `site-build`, `cms-api` | внутри `ci.yml` | Да | path-aware; пропуск допустим только если проверка не применима. |
-| `check-uptime`, `check-alerts`, `docs-build` | `just verify` | Да | Локально и внутри обязательных job'ов. |
+| `check-uptime`, `check-alerts`, `docs-build`, `check-ops-policy` | только `just verify` | Нет | Локальные рецепты; в `ci.yml` этих job нет. |
 | `supply-chain`, `dependency-review`, `coverage`, `docs-links`, `backup-drill`, `alert-drill`, `lighthouse`, `restore-drill` | Отдельные workflow | Нет | `continue-on-error` или вне `needs` агрегатора. |
 | `deploy.yml` | `workflow_dispatch` | Нет | Guard `ENABLE_DEPLOY`, `dry_run=true` по умолчанию. |
 | `docs-pages.yml` | `workflow_dispatch` + ежедневный `docs-check` | Нет | Публикация только при `ENABLE_DOCS_PAGES=true`. |
@@ -73,7 +79,7 @@
 
 Все проверки подготовлены, но ничего не включают в прод: правила алертов
 остаются выключенными, выкладка и включение мониторов — отдельные решения после
-адреса и PR #16. Хостовые шаблоны, SLO/DR, DX-утилиты и read-only политика
+адреса (Q-1). Хостовые шаблоны, SLO/DR, DX-утилиты и read-only политика
 реализованы этим набором коммитов, поэтому в разделе «Идеи на потом» остались
 только нереализованные пункты. SBOM уже загружается как артефакт в
 `supply-chain.yml`; повторно добавлять его не нужно.
@@ -108,22 +114,22 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 
 | Что | Почему выключено | Как включить |
 | --- | --- | --- |
-| Реальная выкладка через `deploy.yml` | Нет сайта в `main` (PR #16) и финального адреса (Q-1) | `ENABLE_DEPLOY=true`, `dry_run=false`, `base_url` |
+| Реальная выкладка через `deploy.yml` | Сайт уже в `main`; нет финального адреса (Q-1) | `ENABLE_DEPLOY=true`, `dry_run=false`, `base_url` |
 | Публикация MkDocs на GitHub Pages | Нужно решение по адресу и budgets | `ENABLE_DOCS_PAGES=true` + dispatch |
 | Uptime Kuma мониторы | Предполагают существующий URL | Применить `scripts/provision-uptime-kuma.sh` после Q-1 |
 | Правила Grafana Alerting | Не хотим алертов о несуществующем сайте | Заменить `labels.enabled` на `"true"` и задать Telegram env |
 | Внешняя независимая точка проверки | Один VPS = одна точка отказа | Отдельный провайдер или сервис после решения Ильи |
-| Реальный smoke и Lighthouse | Ждут `apps/site` и адрес | После слияния PR #16 и Q-1 |
+| Реальный smoke и Lighthouse | Ждут `apps/site` и адрес | После слияния Q-1 |
 | Keyless provenance | `workflow_dispatch` c guard `ENABLE_PROVENANCE`, включается решением по ADR 0006 | `ENABLE_PROVENANCE=true` + dispatch на main |
 | Синтетическая проверка | Без `SREDA_SITE_URL` честно сообщает «проверка не настроена» | Задать `SREDA_SITE_URL` после Q-1 |
 | Манифест релиза | Готов как рецепт, но не входит в CI | `just release-manifest dist` после появления артефакта |
-| Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до слияния PR #16 и адреса Q-1: нет артефакта, флагов и QA-адреса | После PR #16/Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
+| Отчёт `release-readiness` | Вердикт `NO-GO` — нормальное состояние до адреса Q-1: нет артефакта, флагов и QA-адреса | После Q-1 и появления артефакта `just release-readiness` пересчитает таблицу и покажет `READY` |
 | Prometheus, node_exporter и blackbox_exporter | Метричный контур под `--profile logs`; по умолчанию не поднимается | Только после ресурсного gate ADR 0006 §4, `docker compose --profile logs up -d` |
-| Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После PR #16/Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
+| Внешняя проба `sreda-external` | `job` лежит в шаблоне с `${SREDA_SITE_URL}` и не активен | После Q-1: `envsubst` в `prometheus.yml` и перезапуск profiled-сервиса |
 
 ## Блокирующие зависимости
 
-- **PR #16** — минимальный Astro-сайт в `main`; без него `build-site` честно пропускается.
+- **PR #16 уже в `main`** — Astro-сайт собирается в CI; выкладка ждёт Q-1.
 - **Q-1 с Артёмом** — домен, DNS и тестовый адрес выкладки.
 - **ENABLE_DEPLOY / ENABLE_DOCS_PAGES** — флаги включаются отдельно, не «по умолчанию».
 - **ADR 0006** — финальное решение о хостинге остаётся за Ильёй; включение метрик (`--profile logs`) дополнительно ждёт ресурсного gate §4.
@@ -163,7 +169,7 @@ just smoke https://sreda.sielom.ru   # только после Q-1
 
 ## Порядок включения SLO-алертов
 
-Включение — отдельный коммит, только после слияния PR #16 и получения адреса Q-1:
+Включение — отдельный коммит, только после получения адреса Q-1:
 
 1. Заполнить Telegram contact point через env `GRAFANA_TELEGRAM_BOT_TOKEN` и `GRAFANA_TELEGRAM_CHAT_ID`.
 2. В `deploy/observability/grafana-provisioning/alerting/rules.yml` заменить `labels.enabled: "false"` на `"true"` только у трёх SLO-правил.

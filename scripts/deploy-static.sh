@@ -30,6 +30,9 @@ case "$cmd" in
     rm -rf "$tmp"
     mkdir -p "$tmp"
     cp -a "$artifact/." "$tmp/"
+    # Служебные сателлиты подписи не должны попадать в docroot.
+    rm -f -- "$tmp/artifact.tar.gz" "$tmp/artifact.sha256" \
+        "$tmp/cosign.sig" "$tmp/cosign.pem"
     # Проверяем состав до переключения указателя.
     [ -f "$tmp/index.html" ] || die "копия без index.html"
     [ -f "$tmp/404.html" ] || die "копия без 404.html"
@@ -59,8 +62,10 @@ case "$cmd" in
   verify)
     base=${2:?usage: verify <base-url> [previous-release-dir]}
     previous=${3:-}
-    main_code=$(curl -fsS -o /dev/null -w '%{http_code}' "$base/" || true)
-    missing_code=$(curl -sS -o /dev/null -w '%{http_code}' "$base/this-page-does-not-exist" || true)
+    main_code=$(curl -fsS --connect-timeout 5 --max-time 10 \
+        -o /dev/null -w '%{http_code}' "$base/" || true)
+    missing_code=$(curl -sS --connect-timeout 5 --max-time 10 \
+        -o /dev/null -w '%{http_code}' "$base/this-page-does-not-exist" || true)
     log "main=$main_code 404=$missing_code"
     [ "$main_code" = "200" ] || die "главная отдаёт $main_code"
     [ "$missing_code" = "404" ] || die "несуществующая страница отдаёт $missing_code"
