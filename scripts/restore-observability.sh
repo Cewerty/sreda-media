@@ -17,6 +17,16 @@ TMP_DIR=""
 
 fail() { printf '[restore] ОШИБКА: %s\n' "$*" >&2; exit 1; }
 log() { printf '[restore] %s\n' "$*"; }
+START_TS="$(date +%s)"
+RESTORE_LOG="${SREDA_BACKUP_LOG:-/var/log/sreda/backup.jsonl}"
+emit() {
+    [ "$DRY_RUN" != "1" ] || return 0
+    mkdir -p "$(dirname "$RESTORE_LOG")" 2>/dev/null || return 0
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '{"component":"backup","environment":"production","event":"%s","outcome":"%s","release":"%s","timestamp":"%s","elapsed_ms":"%s"}\n' \
+        "$1" "$2" "$now" "$now" \
+        "$((($(date +%s) - START_TS) * 1000))" >> "$RESTORE_LOG" 2>/dev/null || true
+}
 cleanup() { if [ -n "$TMP_DIR" ] && [ -d "$TMP_DIR" ]; then rm -rf "$TMP_DIR"; fi; return 0; }
 trap cleanup EXIT
 
@@ -71,9 +81,12 @@ command -v docker >/dev/null 2>&1 || fail "docker не найден"
 
 if [ -f "$MANIFEST" ]; then
     ( cd "$BACKUP_DIR" && sha256sum -c "$(basename "$MANIFEST")" ) \
-        || fail "проверка SHA256 не пройдена"
+        || { emit restore_failed failure; fail "проверка SHA256 не пройдена"; }
 else
-    log "манифест не найден, продолжаем по явному указанию: $MANIFEST"
+    [ "${ALLOW_UNVERIFIED_RESTORE:-0}" = "1" ] || \
+        { emit restore_failed failure; fail "манифест не найден: $MANIFEST"; }
+    log "ВНИМАНИЕ: восстановление без манифеста разрешено явно"
+    emit restore_unverified skipped
 fi
 
 SQL_FILE="$(resolve_file "$SQL_FILE")" || fail "не удалось подготовить SQL-дамп"
@@ -96,4 +109,5 @@ if [ "$MODE" != "--sql-only" ]; then
     docker compose -f "$COMPOSE_FILE" start grafana
 fi
 
+emit restore_finished success
 log "готово: $(basename "$SQL_FILE") восстановлен"
